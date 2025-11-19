@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Crypto Control</title>
+    
+    <!-- Kit Mobile PWA -->
+    <meta name="theme-color" content="#111827">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CryptoControl">
+    
+    <!-- Ícone do App (Certifique-se de que a imagem está na mesma pasta) -->
+    <link rel="icon" type="image/jpeg" href="CryptoControl_icon.jpg">
+    <link rel="apple-touch-icon" href="CryptoControl_icon.jpg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Estilos Gerais */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        
+        .glass-panel {
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+        }
+        
+        .live-indicator { display: inline-block; width: 6px; height: 6px; background-color: #34d399; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px #34d399; }
+        .live-indicator.busy { background-color: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
+        .live-indicator.error { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
+
+        /* Ícones de Moeda (Estilo Token) */
+        .coin-icon-wrapper {
+            width: 32px; height: 32px; 
+            border-radius: 50%; 
+            overflow: hidden; 
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .coin-img-primary { 
+            width: 100%; height: 100%; 
+            object-fit: cover; 
+            position: absolute; 
+            top: 0; left: 0; 
+        }
+        .coin-svg-fallback { 
+            width: 100%; height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background-color: inherit; 
+        }
+        .coin-svg-fallback svg { width: 65%; height: 65%; }
+
+        /* Console Hacker */
+        .hacker-font { font-family: 'Courier New', monospace; letter-spacing: -0.5px; }
+        .log-entry { border-bottom: 1px solid rgba(75, 85, 99, 0.3); padding: 2px 0; }
+        .log-success { color: #4ade80; } .log-error { color: #f87171; } .log-info { color: #60a5fa; }
+
+        /* Barra de Progresso */
+        #queueProgressContainer { position: fixed; top: 0; left: 0; width: 100%; height: 2px; z-index: 200; }
+        #queueProgressBar { height: 100%; background: #3b82f6; width: 0; transition: width 0.2s ease-out; }
+        
+        /* Blur de Privacidade */
+        .privacy-blur {
+            filter: blur(5px);
+            user-select: none;
+            opacity: 0.6;
+            transition: filter 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col relative select-none">
+
+    <div id="queueProgressContainer" class="hidden"><div id="queueProgressBar"></div></div>
+
+    <!-- 1. Modal de Ajuda -->
+    <div id="helpModal" class="fixed inset-0 bg-black/90 hidden z-[140] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="glass-panel p-0 rounded-xl w-full max-w-md shadow-2xl relative overflow-hidden">
+            <div class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-white flex items-center"><i class="fa-solid fa-circle-question text-blue-500 mr-2"></i> Ajuda</h2>
+                <button onclick="document.getElementById('helpModal').classList.add('hidden')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="p-5 space-y-4 text-sm text-gray-300">
+                <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex gap-3">
+                    <i class="fa-solid fa-shield-halved text-red-400 text-xl mt-1"></i>
+                    <div>
+                        <h3 class="text-red-400 font-bold text-xs uppercase">Privacidade Total</h3>
+                        <p class="text-[11px] mt-1 leading-tight">Seus dados são salvos <strong>somente neste dispositivo</strong>. Não há nuvem. Se limpar o cache, os dados somem. Faça backups!</p>
+                    </div>
+                </div>
+                <ul class="space-y-2 list-disc pl-4 text-xs">
+                    <li><strong>Olho (<i class="fa-solid fa-eye"></i>):</strong> Oculta saldos e quantidades para privacidade em vídeos.</li>
+                    <li><strong>Sincronizar:</strong> Transfira dados entre PC e Celular via código.</li>
+                    <li><strong>Ícones:</strong> Bolinhas coloridas indicam a moeda.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Modal Simulador -->
+    <div id="simulatorModal" class="fixed inset-0 bg-black/90 hidden z-[135] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="glass-panel p-6 rounded-xl w-full max-w-sm shadow-2xl relative">
+            <button onclick="document.getElementById('simulatorModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            <h2 class="text-lg font-bold mb-4 text-white flex items-center"><i class="fa-solid fa-wand-magic-sparkles text-yellow-400 mr-2"></i> Simulador</h2>
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 mb-1 block">Se o Bitcoin valer (USD):</label>
+                <input type="number" id="simPriceInput" placeholder="Ex: 150000" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white text-lg focus:border-yellow-500 outline-none">
+            </div>
+            <button onclick="app.runSimulation()" class="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold py-2 rounded shadow-lg transform active:scale-95 transition">Calcular Patrimônio</button>
+            <div id="simResult" class="hidden mt-4 text-center bg-black/30 p-3 rounded border border-gray-700">
+                <p class="text-gray-500 text-[10px] uppercase">Projeção</p>
+                <div class="text-2xl font-bold text-green-400" id="simTotalValue">...</div>
+                <div class="text-xs text-gray-400" id="simProfit">...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Modal Configurações (Unificado) -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/90 hidden z-[130] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="glass-panel p-0 rounded-xl w-full max-w-sm shadow-2xl relative overflow-hidden">
+            <div class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-gear text-gray-400 mr-2"></i> Ajustes</h2>
+                <button onclick="app.closeSettings()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="p-5 space-y-6">
+                <!-- Backup -->
+                <div>
+                    <h3 class="text-[10px] font-bold text-green-500 uppercase mb-2 border-b border-gray-700 pb-1">Backup (Arquivo)</h3>
+                    <div class="flex gap-2">
+                        <button onclick="app.smartSave()" class="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white font-bold"><i class="fa-solid fa-download mr-1"></i> Salvar</button>
+                        <button onclick="document.getElementById('importFile').click()" class="flex-1 py-2 border border-gray-600 hover:bg-gray-700 rounded text-xs text-gray-300"><i class="fa-solid fa-upload mr-1"></i> Ler</button>
+                        <input type="file" id="importFile" accept=".json" class="hidden" onchange="app.importData(this)">
+                    </div>
+                </div>
+                <!-- Sync Texto -->
+                <div>
+                    <h3 class="text-[10px] font-bold text-purple-500 uppercase mb-2 border-b border-gray-700 pb-1">Sincronizar (Texto)</h3>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="exportCodeInput" readonly class="flex-1 bg-black/30 border border-gray-600 rounded px-2 text-[10px] text-gray-500 truncate" value="...">
+                        <button onclick="app.generateExportCode()" class="bg-purple-600 px-3 rounded text-xs font-bold text-white hover:bg-purple-500">Copiar</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="importCodeInput" placeholder="Cole o código..." class="flex-1 bg-black/30 border border-gray-600 rounded px-2 text-[10px] text-white outline-none focus:border-purple-500">
+                        <button onclick="app.importFromCode()" class="bg-gray-700 px-3 rounded text-xs font-bold text-white hover:bg-gray-600">Ok</button>
+                    </div>
+                </div>
+                <!-- API -->
+                <div>
+                    <h3 class="text-[10px] font-bold text-blue-500 uppercase mb-2 border-b border-gray-700 pb-1">API CoinGecko</h3>
+                    <form id="settingsForm" class="space-y-2">
+                        <div class="flex gap-2 text-xs">
+                            <label class="flex items-center cursor-pointer"><input type="radio" name="apiType" value="free" class="mr-1" checked> <span class="text-gray-300">Free</span></label>
+                            <label class="flex items-center cursor-pointer"><input type="radio" name="apiType" value="key" class="mr-1"> <span class="text-gray-300">Pro Key</span></label>
+                        </div>
+                        <div id="apiKeyField" class="hidden"><input type="text" id="apiKeyInput" placeholder="API Key..." class="w-full bg-black/30 border border-gray-600 rounded p-1 text-xs text-white"></div>
+                        <button type="submit" class="w-full py-1 bg-blue-600 rounded text-xs font-bold text-white hover:bg-blue-500">Salvar API</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Search Modal -->
+    <div id="searchModal" class="fixed inset-0 bg-black/90 hidden z-[120] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="glass-panel p-6 rounded-xl w-full max-w-md shadow-2xl relative">
+            <button onclick="document.getElementById('searchModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-500 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            <h2 class="text-lg font-bold mb-4 text-white">Adicionar Moeda</h2>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="coinSearchInput" placeholder="Ex: Pepe..." class="flex-1 bg-gray-900 border border-gray-600 rounded p-2 text-white outline-none focus:border-blue-500">
+                <button onclick="app.searchCoins()" class="bg-blue-600 px-4 rounded text-white font-bold hover:bg-blue-500"><i class="fa-solid fa-search"></i></button>
+            </div>
+            <div id="searchResults" class="max-h-48 overflow-y-auto space-y-2 text-xs text-center text-gray-500">Digite para buscar.</div>
+        </div>
+    </div>
+
+    <!-- 5. Console -->
+    <div id="consoleModal" class="fixed inset-0 bg-black/80 hidden z-[160] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="glass-panel p-0 rounded-xl w-full max-w-2xl h-[400px] flex flex-col shadow-2xl overflow-hidden">
+            <div class="bg-gray-800 p-3 flex justify-between items-center border-b border-gray-700">
+                <span class="text-xs font-mono text-green-400">>_ CONSOLE</span>
+                <button onclick="document.getElementById('consoleModal').classList.add('hidden')" class="text-white"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div id="consoleBody" class="flex-1 bg-black/80 p-3 overflow-y-auto text-[10px] text-gray-300 hacker-font"></div>
+            <div class="bg-gray-800 p-2 flex justify-between border-t border-gray-700 text-[10px]">
+                <span id="queueStatusText" class="text-gray-500">Idle</span>
+                <button onclick="document.getElementById('consoleBody').innerHTML=''" class="text-gray-400 hover:text-white">Limpar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-gray-800/90 backdrop-blur-md border-b border-gray-700 p-3 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full overflow-hidden shadow-lg border border-blue-500/30">
+                    <!-- Ícone da Navbar usando a imagem local -->
+                    <img src="CryptoControl_icon.jpg" class="w-full h-full object-cover" alt="Logo">
+                </div>
+                <h1 class="text-lg font-bold tracking-tight text-white">Crypto<span class="text-blue-500">Control</span></h1>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <!-- Currency Toggle -->
+                <div class="flex bg-gray-900 rounded p-0.5 border border-gray-700">
+                    <button onclick="app.setCurrency('BRL')" id="btn-currency-brl" class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-600 text-white transition">BRL</button>
+                    <button onclick="app.setCurrency('USD')" id="btn-currency-usd" class="px-2 py-0.5 text-[10px] font-bold rounded text-gray-400 hover:text-white transition">USD</button>
+                </div>
+                
+                <!-- Icons -->
+                <button onclick="document.getElementById('simulatorModal').classList.remove('hidden')" class="p-1.5 text-yellow-400 hover:bg-gray-700 rounded transition"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                <button onclick="document.getElementById('helpModal').classList.remove('hidden')" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-circle-question"></i></button>
+                <button onclick="app.openSettings()" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-gear"></i></button>
+                <button onclick="app.refreshAll()" class="p-1.5 text-blue-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-sync"></i></button>
+                <button onclick="app.toggleConsole()" class="p-1.5 text-gray-500 hover:text-green-400 hover:bg-gray-700 rounded transition"><i class="fa-solid fa-terminal"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Resumo -->
+            <div class="glass-panel rounded-xl p-6 shadow-lg relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition"><i class="fa-solid fa-wallet text-6xl text-white"></i></div>
+                
+                <!-- Cabeçalho com Olho de Privacidade -->
+                <div class="flex items-center mb-1">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase mr-2">Patrimônio Total</h2>
+                    <button onclick="app.togglePrivacy()" class="text-gray-500 hover:text-white transition text-xs" title="Ocultar/Mostrar Valores">
+                        <i class="fa-solid fa-eye" id="privacyIconMobile"></i>
+                    </button>
+                </div>
+                
+                <div class="text-3xl font-bold text-white tracking-tight mb-2" id="totalBalance">...</div>
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-700/50">
+                    <div><div class="text-[10px] text-gray-500 uppercase">Investido</div><div class="text-sm text-gray-300 font-mono" id="totalInvested">...</div></div>
+                    <div class="text-right"><div class="text-[10px] text-gray-500 uppercase">Lucro/Prejuízo</div><div class="text-sm font-bold font-mono" id="totalPnL">...</div></div>
+                </div>
+                <div class="absolute top-4 right-4 text-[10px] text-gray-500 flex items-center" id="apiStatus">
+                    <span class="live-indicator"></span> API
+                </div>
+            </div>
+
+            <!-- Pizza -->
+            <div class="glass-panel rounded-xl p-4 shadow-lg flex flex-col items-center justify-center h-56 relative">
+                <h3 class="text-xs font-bold text-gray-400 w-full text-left mb-2">Alocação</h3>
+                <canvas id="portfolioChart"></canvas>
+                <div id="emptyChartMsg" class="hidden text-gray-500 text-xs absolute">Carteira Vazia</div>
+            </div>
+
+            <!-- Form -->
+            <div id="formContainer" class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center">
+                        <div id="formIconContainer" class="w-6 h-6 mr-2 flex items-center justify-center bg-gray-700 rounded-full overflow-hidden"></div>
+                        Nova Transação
+                    </h3>
+                    <button onclick="document.getElementById('searchModal').classList.remove('hidden')" class="text-[10px] bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded uppercase font-bold tracking-wide"><i class="fa-solid fa-plus mr-1"></i> Moeda</button>
+                </div>
+                <form id="txForm" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Moeda</label>
+                            <select id="coinSelect" onchange="app.updateFormTheme()" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white outline-none focus:border-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Ação</label>
+                            <select id="typeSelect" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white outline-none focus:border-blue-500"><option value="buy">Comprar</option><option value="sell">Vender</option></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Qtd</label>
+                            <input type="number" step="0.00000001" id="amountInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Total (<span id="costCurrencyLabel">R$</span>)</label>
+                            <input type="number" step="0.01" id="costInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 block mb-1">Data</label>
+                        <input type="date" id="dateInput" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white">
+                    </div>
+                    <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-xs shadow-lg transform active:scale-95 transition">ADICIONAR</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Line Chart -->
+            <div class="glass-panel rounded-xl p-4 shadow-lg border border-gray-700">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold text-gray-400">Histórico</h3>
+                    <div class="flex bg-gray-800 rounded p-0.5">
+                        <button onclick="app.changeRange(30)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">30D</button>
+                        <button onclick="app.changeRange(90)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">90D</button>
+                        <button onclick="app.changeRange(180)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">6M</button>
+                        <button onclick="app.changeRange(365)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">1A</button>
+                    </div>
+                </div>
+                <div class="w-full h-56 relative"><canvas id="historyChart"></canvas></div>
+            </div>
+
+            <!-- Assets Grid -->
+            <div id="assetsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+            <!-- Table -->
+            <div class="glass-panel rounded-xl border border-gray-700 overflow-hidden">
+                <div class="bg-gray-800/50 p-3 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-gray-400">Últimas Transações</h3>
+                    <button onclick="app.clearAllData()" class="text-[10px] text-red-400 hover:text-red-300">Limpar Tudo</button>
+                </div>
+                <div class="overflow-x-auto max-h-60">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-900 text-gray-500 font-normal">
+                            <tr><th class="p-3 font-normal">Data</th><th class="p-3 font-normal">Ativo</th><th class="p-3 font-normal">Tipo</th><th class="p-3 text-right font-normal">Qtd</th><th class="p-3 text-right font-normal">Valor</th><th class="p-3"></th></tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-gray-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="border-t border-gray-800 mt-6 py-8 text-center bg-gray-900/90 backdrop-blur-md">
+        <p class="text-gray-500 text-sm font-mono mb-4">By Arthur Miguel</p>
+        <!-- Donation Section -->
+        <div class="inline-block bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 max-w-sm mx-auto">
+            <p class="text-xs text-gray-400 mb-2 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-heart text-red-500"></i> Apoie o desenvolvimento
+            </p>
+            <div class="flex items-center gap-2 bg-black/30 rounded p-2 cursor-pointer hover:bg-black/50 transition" onclick="app.copyDonationAddress()">
+                <i class="fa-brands fa-bitcoin text-yellow-500 text-lg"></i>
+                <span class="text-[10px] font-mono text-gray-300 break-all select-all">Bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0</span>
+                <i class="fa-regular fa-copy text-gray-500 text-xs ml-1"></i>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // CONFIGURAÇÃO DE ÍCONES (24x24 Paths)
+        const ICONS = {
+            BTC: '<path d="M17.05,10.28C16.5,8.11 14.75,6.4 12.31,5.88V3.38H9.81V5.88H8.31V3.38H5.81V5.92H2.31V8.42H3.81C4.64,8.42 5.31,9.09 5.31,9.92V17.56C5.31,18.39 4.64,19.06 3.81,19.06H2.31V21.56H5.81V21.56H5.81V24.06H8.31V21.53H9.81V24.03H12.31V21.14C15.39,20.73 17.62,18.68 17.19,15.86C16.96,14.37 16.09,13.26 14.93,12.69C15.96,12.15 16.78,11.03 17.05,10.28M13.03,17.53H10.34V14.03H13.03C14,14.03 14.78,14.81 14.78,15.78C14.78,16.75 14,17.53 13.03,17.53M12.55,12.03H10.34V9.03H12.55C13.38,9.03 14.05,9.7 14.05,10.53C14.05,11.36 13.38,12.03 12.55,12.03Z"/>',
+            ETH: '<path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z"/>',
+            SOL: '<path d="M19.437 8.71c.03 0 .059-.006.086-.017l.051-.023a.603.603 0 0 0 .233-.184l.032-.046c.179-.316.105-.725-.208-.934L5.266 1.13a.81.81 0 0 0-.353-.13H3.954c-.03 0-.059.006-.087.017l-.05.023a.608.608 0 0 0-.234.184l-.032.046c-.178.316-.105.725.209.934l14.365 6.377a.815.815 0 0 0 .353.13h.96zm.61 6.58c.03 0 .058-.006.086-.017l.05-.023a.604.604 0 0 0 .234-.184l.032-.046c.179-.316.105-.725-.208-.934L5.875 7.71a.81.81 0 0 0-.352-.13H4.563c-.03 0-.059.006-.087.017l-.05.023a.61.61 0 0 0-.23.184l-.03.046c-.18.316-.1.725.21.934l14.36 6.376a.81.81 0 0 0 .35.13h.96zm-.61 6.58c.03 0 .06-.006.09-.017l.05-.023a.6.6 0 0 0 .23-.184l.03-.046c.18-.316.1-.725-.21-.934L5.27 14.29a.81.81 0 0 0-.35-.13H3.95c-.03 0-.06.006-.09.017l-.05.023a.61.61 0 0 0-.23.184l-.03.046c-.18.316-.1.725.21.934l14.36 6.377a.81.81 0 0 0 .35.13h.96z"/>',
+            ADA: '<path d="M12 13.55c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zm4.25-1.55c0 .86.69 1.55 1.55 1.55.85 0 1.55-.69 1.55-1.55 0-.85-.7-1.55-1.55-1.55-.86 0-1.55.7-1.55 1.55zM7.75 12c0 .86.69 1.55 1.55 1.55.85 0 1.55-.69 1.55-1.55 0-.85-.7-1.55-1.55-1.55-.86 0-1.55.7-1.55 1.55zm4.25 4.25c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zm0-8.5c.85 0 1.54-.7 1.54-1.55A1.545 1.545 0 1 0 12 7.75zm-4.25 4.25c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zm8.5 0c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zM12 2.25A1.545 1.545 0 1 0 12 5.35c.85 0 1.54-.7 1.54-1.55 0-.86-.69-1.55-1.54-1.55zm0 19.5a1.545 1.545 0 1 0 0 3.1 1.545 1.545 0 0 0 0-3.1zm9.75-9.75a1.545 1.545 0 1 0 0 3.1 1.545 1.545 0 0 0 0-3.1zM2.25 12a1.545 1.545 0 1 0 0 3.1 1.545 1.545 0 0 0 0-3.1z"/>',
+            XRP: '<path d="M12.005 13.572l6.338 6.387 1.413-1.416-6.402-6.328 6.326-6.22-1.412-1.416-6.263 6.29-6.34-6.368-1.414 1.416 6.42 6.298-6.327 6.232 1.414 1.416z"/>'
+        };
+
+        const DEFAULT_COINS = {
+            'bitcoin': { symbol: 'BTC', name: 'Bitcoin', color: '#f59e0b', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', path: ICONS.BTC },
+            'ethereum': { symbol: 'ETH', name: 'Ethereum', color: '#6366f1', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', path: ICONS.ETH },
+            'solana': { symbol: 'SOL', name: 'Solana', color: '#14b8a6', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', path: ICONS.SOL },
+            'cardano': { symbol: 'ADA', name: 'Cardano', color: '#3b82f6', image: 'https://assets.coingecko.com/coins/images/975/small/cardano.png', path: ICONS.ADA },
+            'ripple': { symbol: 'XRP', name: 'Ripple', color: '#ffffff', image: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png', path: ICONS.XRP }
+        };
+
+        const safeParse = (key, def) => { try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; } };
+
+        class CryptoApp {
+            constructor() {
+                const savedCustom = safeParse('crypto_custom_coins', {});
+                this.coinMap = { ...savedCustom, ...DEFAULT_COINS }; 
+                this.transactions = safeParse('crypto_txs', []);
+                this.apiConfig = safeParse('crypto_api_config', { type: 'free', key: '' });
+                this.displayCurrency = localStorage.getItem('crypto_currency') || 'BRL';
+                this.privacyMode = false; // Modo privacidade
+
+                this.historyCache = {};
+                this.requestQueue = [];
+                this.isProcessingQueue = false;
+                this.prices = {};
+                this.chartDays = 30;
+                this.rateBrlToUsd = 0;
+
+                this.initUI();
+                this.refreshAll();
+                setInterval(() => this.refreshAll(), 60000);
+            }
+
+            // Toggle de Privacidade
+            togglePrivacy() {
+                this.privacyMode = !this.privacyMode;
+                // Atualiza ícone do olho (Mobile)
+                const iconMobile = document.getElementById('privacyIconMobile');
+                if (iconMobile) {
+                    if (this.privacyMode) {
+                        iconMobile.classList.remove('fa-eye');
+                        iconMobile.classList.add('fa-eye-slash');
+                    } else {
+                        iconMobile.classList.remove('fa-eye-slash');
+                        iconMobile.classList.add('fa-eye');
+                    }
+                }
+
+                // Atualiza ícone do olho (Navbar Desktop)
+                const iconDesktop = document.getElementById('privacyIcon');
+                if (iconDesktop) {
+                    // Não existe na navbar desktop nessa versão, mas mantemos lógica caso exista
+                }
+                
+                // Re-renderiza tudo
+                this.calculatePortfolio();
+            }
+
+            // Formata valor monetário com privacidade
+            formatMoney(value, symbol) {
+                if (this.privacyMode) return '••••••';
+                return `${symbol} ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            }
+            
+            // Formata quantidade com privacidade
+            formatQuantity(value, symbol) {
+                if (this.privacyMode) return '••••••';
+                return `${value.toFixed(6)} ${symbol}`;
+            }
+            
+            copyDonationAddress() {
+                const addr = "Bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0";
+                navigator.clipboard.writeText(addr);
+                alert("Endereço copiado! Obrigado pelo apoio 🚀");
+            }
+
+            // GERA HTML DO ÍCONE (BOLA COLORIDA + SVG BRANCO)
+            getIconHtml(config) {
+                if (config.path) {
+                    const bg = config.symbol === 'XRP' ? '#333' : config.color;
+                    return `
+                    <div class="coin-icon-wrapper" style="background-color: ${bg}">
+                        <img src="${config.image}" class="coin-img-primary" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div class="coin-svg-fallback" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="#ffffff">${config.path}</svg>
+                        </div>
+                    </div>`;
+                }
+                return `<img src="${config.image}" class="w-full h-full rounded-full">`;
+            }
+
+            initUI() {
+                const dateInput = document.getElementById('dateInput');
+                if(dateInput) dateInput.valueAsDate = new Date();
+                this.populateCoinSelect();
+                this.updateCurrencyUI();
+                this.updateFormTheme();
+                this.updateApiStatusUI();
+
+                document.getElementById('settingsForm').onsubmit = (e) => this.saveSettings(e);
+                document.getElementById('txForm').onsubmit = (e) => this.handleAddTransaction(e);
+                document.querySelectorAll('input[name="apiType"]').forEach(r => {
+                    r.onchange = (e) => document.getElementById('apiKeyField').classList.toggle('hidden', e.target.value === 'free');
+                });
+            }
+
+            // --- Queue ---
+            addToQueue(taskFn) {
+                this.requestQueue.push(taskFn);
+                this.updateQueueUI();
+                if (!this.isProcessingQueue) this.processQueue();
+            }
+            async processQueue() {
+                if (this.requestQueue.length === 0) { this.isProcessingQueue = false; this.updateQueueUI(); return; }
+                this.isProcessingQueue = true;
+                const task = this.requestQueue.shift();
+                try {
+                    await task();
+                    await new Promise(r => setTimeout(r, this.apiConfig.type === 'free' ? 800 : 150)); // Acelerei um pouco
+                } catch (e) {
+                    this.log(`Erro: ${e.message}`, 'error');
+                    if(e.message && e.message.includes('429')) await new Promise(r => setTimeout(r, 5000));
+                }
+                this.updateQueueUI();
+                this.processQueue();
+            }
+            updateQueueUI() {
+                const bar = document.getElementById('queueProgressBar');
+                const container = document.getElementById('queueProgressContainer');
+                if (this.isProcessingQueue) {
+                    container.classList.remove('hidden');
+                    bar.style.width = '100%';
+                    bar.classList.add('animate-pulse');
+                } else {
+                    setTimeout(() => container.classList.add('hidden'), 500);
+                }
+            }
+
+            // --- Simulator ---
+            runSimulation() {
+                const target = parseFloat(document.getElementById('simPriceInput').value);
+                if (!target) return alert('Digite um valor!');
+                const btcPrice = this.prices.bitcoin ? this.prices.bitcoin.usd : 0;
+                if (btcPrice === 0) return alert('Aguarde carregamento.');
+                
+                const growth = target / btcPrice;
+                let projectedTotal = 0;
+
+                Object.keys(this.coinMap).forEach(id => {
+                    const qty = this.transactions.filter(t => t.coinId === id)
+                        .reduce((acc, t) => t.type === 'buy' ? acc + t.amount : acc - t.amount, 0);
+                    if (qty <= 0) return;
+                    
+                    const price = this.prices[id] ? this.prices[id].usd : 0;
+                    const currentVal = qty * price;
+                    const projVal = id === 'bitcoin' ? qty * target : currentVal * growth;
+                    projectedTotal += projVal;
+                });
+
+                if (this.displayCurrency === 'BRL' && this.rateBrlToUsd > 0) projectedTotal = projectedTotal / this.rateBrlToUsd;
+                const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+                document.getElementById('simResult').classList.remove('hidden');
+                
+                // Aplica privacidade aqui também
+                const valDisplay = this.privacyMode ? '••••••' : `${sym} ${projectedTotal.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
+                document.getElementById('simTotalValue').innerText = valDisplay;
+                document.getElementById('simProfit').innerText = `Crescimento: ${(growth*100-100).toFixed(1)}%`;
+            }
+
+            // --- Core ---
+            async refreshAll() {
+                const ids = Object.keys(this.coinMap).join(',');
+                this.addToQueue(async () => {
+                    const url = this.getApiUrl(`/simple/price?ids=${ids}&vs_currencies=brl,usd&include_24hr_change=true`);
+                    const res = await fetch(url);
+                    if(!res.ok) throw new Error(res.status);
+                    this.prices = await res.json();
+                    if(this.prices.bitcoin) {
+                        this.rateBrlToUsd = this.prices.bitcoin.usd / this.prices.bitcoin.brl;
+                        const btc = this.displayCurrency === 'BRL' ? this.prices.bitcoin.brl : this.prices.bitcoin.usd;
+                        const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+                        // Oculta título se privacidade estiver ativa
+                        document.title = this.privacyMode ? 'Crypto Control' : `BTC ${sym} ${(btc/1000).toFixed(1)}k`;
+                    }
+                    this.calculatePortfolio();
+                    document.getElementById('apiStatus').innerHTML = '<span class="live-indicator"></span> API Online';
+                });
+                this.fetchHistory();
+            }
+
+            fetchHistory() {
+                const active = [...new Set(this.transactions.map(t => t.coinId))];
+                if(active.length === 0) active.push('bitcoin');
+                const targets = [...new Set([...active, 'bitcoin'])].slice(0, 5);
+                const vs = this.displayCurrency.toLowerCase();
+                const results = {};
+                let count = 0;
+
+                targets.forEach(id => {
+                    this.addToQueue(async () => {
+                        const key = `${id}_${vs}_${this.chartDays}`;
+                        if(this.historyCache[key] && (Date.now() - this.historyCache[key].ts < 900000)) {
+                            results[id] = this.historyCache[key].data;
+                        } else {
+                            const res = await fetch(this.getApiUrl(`/coins/${id}/market_chart?vs_currency=${vs}&days=${this.chartDays}&interval=daily`));
+                            const json = await res.json();
+                            if(json.prices) {
+                                results[id] = json.prices;
+                                this.historyCache[key] = { ts: Date.now(), data: json.prices };
+                            }
+                        }
+                        count++;
+                        if(count === targets.length) this.updateLineChart(targets, results);
+                    });
+                });
+            }
+
+            calculatePortfolio() {
+                const portfolio = {}; let totalBal=0, totalInv=0;
+                const curKey = this.displayCurrency.toLowerCase();
+                const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+
+                this.transactions.sort((a,b) => new Date(a.date) - new Date(b.date));
+                this.transactions.forEach(tx => {
+                    if(!portfolio[tx.coinId]) portfolio[tx.coinId] = { qty:0, invest:0 };
+                    let cost = tx.totalCost;
+                    const txCur = tx.currency || 'BRL';
+                    if(txCur !== this.displayCurrency && this.rateBrlToUsd > 0) {
+                        cost = txCur === 'BRL' ? cost * this.rateBrlToUsd : cost / this.rateBrlToUsd;
+                    }
+                    if(tx.type === 'buy') { portfolio[tx.coinId].qty += tx.amount; portfolio[tx.coinId].invest += cost; }
+                    else { const avg = portfolio[tx.coinId].invest/portfolio[tx.coinId].qty; portfolio[tx.coinId].invest -= avg*tx.amount; portfolio[tx.coinId].qty -= tx.amount; }
+                });
+
+                const container = document.getElementById('assetsContainer');
+                container.innerHTML = '';
+                const labels=[], data=[], colors=[];
+
+                Object.keys(portfolio).forEach(id => {
+                    const item = portfolio[id];
+                    if(item.qty <= 0.000001) return;
+                    const config = this.coinMap[id];
+                    const price = this.prices[id] ? this.prices[id][curKey] : 0;
+                    const balance = item.qty * price;
+                    const profit = balance - item.invest;
+                    const pct = item.invest > 0 ? (profit/item.invest)*100 : 0;
+                    
+                    totalBal += balance; totalInv += item.invest;
+                    labels.push(config.name); data.push(balance); colors.push(config.color);
+
+                    const icon = this.getIconHtml(config);
+
+                    // Formatação Condicional - AGORA COM QUANTIDADE
+                    const displayBalance = this.formatMoney(balance, sym);
+                    const displayPrice = this.formatMoney(price, sym);
+                    const displayPM = this.formatMoney(item.invest/item.qty, sym);
+                    const displayQty = this.formatQuantity(item.qty, config.symbol);
+                    
+                    container.innerHTML += `
+                        <div class="glass-panel rounded-xl p-4 border border-gray-700 relative overflow-hidden">
+                            <div class="flex justify-between mb-2 relative z-10">
+                                <div class="flex items-center">
+                                    <div class="mr-3">${icon}</div>
+                                    <div>
+                                        <div class="font-bold text-white text-sm">${config.name}</div>
+                                        <div class="text-xs text-gray-400">${displayQty}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right"><div class="font-bold text-white">${displayBalance}</div><div class="text-[10px] text-gray-500">${displayPrice}</div></div>
+                            </div>
+                            <div class="flex justify-between pt-2 border-t border-gray-700/50 text-xs relative z-10">
+                                <span class="text-gray-400">PM: ${displayPM}</span>
+                                <span class="${profit>=0?'text-green-400':'text-red-400'} font-bold">${profit>=0?'+':''}${pct.toFixed(2)}%</span>
+                            </div>
+                            <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-5 filter blur-2xl" style="background-color:${config.color}"></div>
+                        </div>`;
+                });
+
+                const totProfit = totalBal - totalInv;
+                const totPct = totalInv > 0 ? (totProfit/totalInv)*100 : 0;
+                
+                document.getElementById('totalBalance').innerText = this.formatMoney(totalBal, sym);
+                document.getElementById('totalInvested').innerText = this.formatMoney(totalInv, sym);
+                
+                // Profit Value is Hidden, Percentage is Visible
+                const profitVal = this.privacyMode ? '••••••' : `${sym} ${totProfit.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+                document.getElementById('totalPnL').innerHTML = `<span class="${totProfit>=0?'text-green-400':'text-red-400'}">${profitVal} (${totPct.toFixed(2)}%)</span>`;
+                
+                this.updateDonut(labels, data, colors);
+                this.renderHistory();
+            }
+
+            updateDonut(labels, data, colors) {
+                const ctx = document.getElementById('portfolioChart').getContext('2d');
+                if(this.donutChart) this.donutChart.destroy();
+                document.getElementById('emptyChartMsg').classList.toggle('hidden', data.length > 0);
+                this.donutChart = new Chart(ctx, { 
+                    type: 'doughnut', 
+                    data: { labels, datasets: [{data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4}] }, 
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: {legend:{display:false}} } 
+                });
+            }
+
+            renderHistory() {
+                const tbody = document.getElementById('historyTableBody');
+                tbody.innerHTML = '';
+                const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+                [...this.transactions].reverse().forEach(tx => {
+                    const config = this.coinMap[tx.coinId] || DEFAULT_COINS.bitcoin;
+                    const isBuy = tx.type === 'buy';
+                    const originalSym = (!tx.currency || tx.currency === 'BRL') ? 'R$' : '$';
+                    let smallIcon = '';
+                    if(config.path) {
+                        const bg = config.symbol === 'XRP' ? '#333' : config.color;
+                        smallIcon = `<div class="w-4 h-4 mr-2 rounded-full flex items-center justify-center" style="background:${bg}"><svg viewBox="0 0 24 24" fill="#fff" class="w-2.5 h-2.5">${config.path}</svg></div>`;
+                    } else {
+                        smallIcon = `<img src="${config.image}" class="w-4 h-4 mr-2 rounded-full">`;
+                    }
+                    
+                    // Hide Cost if Privacy Mode
+                    const displayCost = this.privacyMode ? '••••••' : `${originalSym} ${tx.totalCost.toLocaleString()}`;
+                    // Hide Qty if Privacy Mode
+                    const displayQty = this.formatQuantity(tx.amount, "");
+
+                    tbody.innerHTML += `<tr class="border-b border-gray-800 hover:bg-gray-800/50"><td class="p-3 text-gray-400 text-xs">${new Date(tx.date).toLocaleDateString()}</td><td class="p-3 text-white font-bold text-xs flex items-center">${smallIcon} ${config.symbol}</td><td class="p-3"><span class="text-xs font-bold ${isBuy?'text-green-400':'text-red-400'}">${isBuy?'C':'V'}</span></td><td class="p-3 text-right text-gray-300 text-xs font-mono">${displayQty}</td><td class="p-3 text-right text-gray-300 text-xs">${displayCost}</td><td class="p-3 text-center"><button onclick="app.deleteTransaction(${tx.id})" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+                });
+            }
+            
+            updateLineChart(ids, resultsData) {
+                const ctx = document.getElementById('historyChart').getContext('2d');
+                const refId = ids.find(id => resultsData[id]);
+                if(!refId) return;
+                const timestamps = resultsData[refId].map(p => p[0]);
+                const totalValues = timestamps.map((ts, idx) => {
+                    const portfolioAtDate = this.getPortfolioAtDate(ts);
+                    let total = 0;
+                    ids.forEach(coinId => {
+                        if(resultsData[coinId] && portfolioAtDate[coinId]) {
+                            const p = resultsData[coinId][idx] ? resultsData[coinId][idx][1] : 0;
+                            total += p * portfolioAtDate[coinId];
+                        }
+                    });
+                    return total;
+                });
+                const btcValues = resultsData['bitcoin'] ? resultsData['bitcoin'].map(p => p[1]) : [];
+                if(this.lineChart) this.lineChart.destroy();
+                const gradient = ctx.createLinearGradient(0,0,0,400);
+                gradient.addColorStop(0, 'rgba(59,130,246,0.5)'); gradient.addColorStop(1, 'rgba(59,130,246,0.0)');
+                this.lineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: timestamps.map(t => new Date(t).toLocaleDateString()),
+                        datasets: [{ label: 'Patrimônio', data: totalValues, borderColor: '#3b82f6', backgroundColor: gradient, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 6, yAxisID: 'y' }, { label: 'Bitcoin', data: btcValues, borderColor: '#f59e0b', borderDash: [3,3], borderWidth: 1.5, pointRadius: 0, fill: false, yAxisID: 'y1' }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: {display:false}, tooltip: {mode: 'index', intersect: false} }, scales: { x: { display: false }, y: { type: 'linear', display: true, position: 'left', grid: {color:'#374151'}, ticks: {color:'#60a5fa', callback: v=>(v/1000).toFixed(0)+'k'} }, y1: { type: 'linear', display: true, position: 'right', grid: {drawOnChartArea:false}, ticks: {color:'#f59e0b', callback: v=>(v/1000).toFixed(0)+'k'} } } }
+                });
+            }
+            getPortfolioAtDate(ts) {
+                const limit = new Date(ts); const coins = {};
+                this.transactions.forEach(tx => {
+                    const [y,m,d] = tx.date.split('-').map(Number); const txDate = new Date(y, m-1, d, 12, 0, 0);
+                    if(txDate <= limit) { if(!coins[tx.coinId]) coins[tx.coinId] = 0; if(tx.type === 'buy') coins[tx.coinId] += tx.amount; else coins[tx.coinId] -= tx.amount; }
+                }); return coins;
+            }
+            
+            // Utilitários
+            getApiUrl(endpoint) {
+                let url = `https://api.coingecko.com/api/v3${endpoint}`;
+                if(this.apiConfig.type === 'key' && this.apiConfig.key) {
+                    const sep = url.includes('?') ? '&' : '?';
+                    url += `${sep}x_cg_demo_api_key=${this.apiConfig.key}`;
+                }
+                return url;
+            }
+            
+            toggleConsole() { document.getElementById('consoleModal').classList.toggle('hidden'); }
+            openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); }
+            closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+            log(msg, type='info') { const b=document.getElementById('consoleBody'); const d=document.createElement('div'); d.className=`log-entry log-${type}`; d.innerText=`> ${msg}`; b.appendChild(d); b.scrollTop=b.scrollHeight; }
+            populateCoinSelect() { const sel = document.getElementById('coinSelect'); sel.innerHTML = ''; Object.entries(this.coinMap).forEach(([id, c]) => { const opt = document.createElement('option'); opt.value = id; opt.text = `${c.name} (${c.symbol})`; sel.appendChild(opt); }); }
+            
+            updateFormTheme() { 
+                const id = document.getElementById('coinSelect').value; 
+                const c = this.coinMap[id]; if(!c) return; 
+                const div = document.getElementById('formIconContainer'); 
+                div.innerHTML = this.getIconHtml(c);
+                document.getElementById('submitBtn').style.backgroundColor = c.color || '#d97706'; 
+                document.getElementById('formContainer').style.borderColor = c.color || '#d97706'; 
+            }
+            updateApiStatusUI() { const el = document.getElementById('apiStatus'); if(this.apiConfig.key) el.innerHTML = '<span class="live-indicator warning"></span>API Pro'; else el.innerHTML = '<span class="live-indicator"></span>API Free'; }
+            
+            // Save/Load
+            saveSettings(e) { e.preventDefault(); const t = document.querySelector('input[name="apiType"]:checked').value; const k = document.getElementById('apiKeyInput').value.trim(); this.apiConfig = {type:t, key:k}; localStorage.setItem('crypto_api_config', JSON.stringify(this.apiConfig)); this.updateApiStatusUI(); this.closeSettings(); this.log('Config salva.', 'success'); }
+            async smartSave() { const c = JSON.stringify({ transactions: this.transactions, customCoins: safeParse('crypto_custom_coins', {}), version: '1.4' }, null, 2); try { if('showSaveFilePicker' in window) { const h = await window.showSaveFilePicker({ suggestedName: `crypto_backup_${new Date().toISOString().split('T')[0]}.json`, types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] }); const w = await h.createWritable(); await w.write(c); await w.close(); alert('Salvo!'); } else { throw new Error('API N/A'); } } catch(e) { if(e.name !== 'AbortError') { const b = new Blob([c], {type: 'application/json'}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'crypto_backup.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); } } }
+            importData(input) { const f = input.files[0]; if(!f) return; const r = new FileReader(); r.onload = (e) => { try { const d = JSON.parse(e.target.result); if(confirm('Restaurar backup?')) { this.transactions = d.transactions; if(d.customCoins) { localStorage.setItem('crypto_custom_coins', JSON.stringify(d.customCoins)); this.coinMap = {...DEFAULT_COINS, ...d.customCoins}; } this.saveAndRender(); this.populateCoinSelect(); this.refreshAll(); alert('Restaurado!'); this.closeSettings(); } } catch(er) { alert('Erro arquivo'); } }; r.readAsText(f); input.value = ''; }
+            
+            generateExportCode() { const p = { transactions: this.transactions, customCoins: safeParse('crypto_custom_coins', {}), ts: Date.now() }; document.getElementById('exportCodeInput').value = btoa(JSON.stringify(p)); this.log('Código gerado.', 'success'); }
+            importFromCode() { const c = document.getElementById('importCodeInput').value.trim(); if(!c) return alert('Cole o código!'); try { const d = JSON.parse(atob(c)); if(confirm(`Restaurar ${d.transactions.length} transações?`)) { this.transactions = d.transactions; if(d.customCoins) { localStorage.setItem('crypto_custom_coins', JSON.stringify(d.customCoins)); this.coinMap = {...DEFAULT_COINS, ...data.customCoins}; } this.saveAndRender(); this.populateCoinSelect(); this.refreshAll(); alert('Sucesso!'); document.getElementById('settingsModal').classList.add('hidden'); } } catch(e) { alert('Código inválido.'); } }
+            
+            handleAddTransaction(e) { e.preventDefault(); const tx = { id: Date.now(), coinId: document.getElementById('coinSelect').value, type: document.getElementById('typeSelect').value, amount: parseFloat(document.getElementById('amountInput').value), totalCost: parseFloat(document.getElementById('costInput').value), currency: this.displayCurrency, date: document.getElementById('dateInput').value }; this.transactions.push(tx); this.saveAndRender(); e.target.reset(); document.getElementById('dateInput').valueAsDate = new Date(); this.log('Transação add.', 'success'); this.refreshAll(); }
+            deleteTransaction(id) { if(confirm('Excluir?')) { this.transactions = this.transactions.filter(t => t.id !== id); this.saveAndRender(); this.refreshAll(); } }
+            clearAllData() { if(confirm('Apagar tudo?')) { this.transactions = []; this.saveAndRender(); this.refreshAll(); } }
+            saveAndRender() { localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); this.calculatePortfolio(); }
+            setCurrency(c) { this.displayCurrency = c; localStorage.setItem('crypto_currency', c); this.updateCurrencyUI(); this.refreshAll(); }
+            updateCurrencyUI() { const b1 = document.getElementById('btn-currency-brl'); const b2 = document.getElementById('btn-currency-usd'); const l = document.getElementById('costCurrencyLabel'); if (this.displayCurrency === 'BRL') { b1.classList.replace('text-gray-400', 'text-white'); b1.classList.add('bg-blue-600'); b2.classList.remove('bg-blue-600', 'text-white'); b2.classList.add('text-gray-400'); l.innerText = 'R$'; } else { b2.classList.replace('text-gray-400', 'text-white'); b2.classList.add('bg-blue-600'); b1.classList.remove('bg-blue-600', 'text-white'); b1.classList.add('text-gray-400'); l.innerText = 'USD'; } }
+            changeRange(d) { this.chartDays = d; this.fetchHistory(); }
+            
+            // Search
+            async searchCoins() { const q = document.getElementById('coinSearchInput').value; const d = document.getElementById('searchResults'); if(q.length<2) return; d.innerHTML='<div class="text-center text-gray-500">...</div>'; try { const r = await fetch(this.getApiUrl(`/search?query=${q}`)); const j = await r.json(); d.innerHTML=''; j.coins.slice(0,10).forEach(c => { const e = document.createElement('div'); e.className = 'flex justify-between p-2 bg-gray-900/50 rounded mb-2 cursor-pointer hover:bg-gray-800 items-center'; e.innerHTML = `<div class="flex items-center"><img src="${c.thumb}" class="w-6 h-6 rounded-full mr-2"><span class="text-white text-sm font-bold">${c.name}</span></div><i class="fa-solid fa-plus text-blue-400"></i>`; e.onclick = () => { this.coinMap[c.id] = { symbol: c.symbol.toUpperCase(), name: c.name, color: '#9ca3af', image: c.thumb }; const cu = safeParse('crypto_custom_coins', {}); cu[c.id] = this.coinMap[c.id]; localStorage.setItem('crypto_custom_coins', JSON.stringify(cu)); this.populateCoinSelect(); document.getElementById('coinSelect').value = c.id; this.updateFormTheme(); document.getElementById('searchModal').classList.add('hidden'); this.log(`Moeda ${c.name} add.`, 'success'); this.refreshAll(); }; d.appendChild(e); }); } catch(e) { d.innerHTML='<div class="text-center text-red-400">Erro busca</div>'; } }
+            
+            runSimulation() {
+                const t = parseFloat(document.getElementById('simPriceInput').value); if (!t) return alert('Digite valor!');
+                const btc = this.prices.bitcoin ? this.prices.bitcoin.usd : 0; if (btc === 0) return alert('Aguarde API.');
+                const g = t / btc; let proj = 0;
+                Object.keys(this.coinMap).forEach(id => {
+                    const qty = this.transactions.filter(tx => tx.coinId === id).reduce((acc, tx) => tx.type === 'buy' ? acc + tx.amount : acc - tx.amount, 0);
+                    if (qty > 0) { const p = this.prices[id] ? this.prices[id].usd : 0; const val = qty * p; proj += (id === 'bitcoin' ? qty * t : val * g); }
+                });
+                if (this.displayCurrency === 'BRL' && this.rateBrlToUsd > 0) proj = proj / this.rateBrlToUsd;
+                const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+                document.getElementById('simResult').classList.remove('hidden');
+                // Formatação com privacidade também
+                const displayProj = this.privacyMode ? '••••••' : `${sym} ${proj.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
+                document.getElementById('simTotalValue').innerText = displayProj;
+                document.getElementById('simProfit').innerText = `Crescimento: ${(g*100-100).toFixed(1)}%`;
+            }
+        }
+
+        const app = new CryptoApp();
+    </script>
+</body>
+</html>
