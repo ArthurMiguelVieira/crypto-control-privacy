@@ -5,7 +5,7 @@
 O **Crypto Control** é um gerenciador de portfólio de criptomoedas focado em **privacidade absoluta**.  
 Diferente de outros apps que exigem cadastro e sincronizam na nuvem, **tudo roda 100% no seu navegador**, direto no *Client-Side*.
 
-🌐 **Acesse agora:** *[Link do seu site no Vercel/GitHub Pages]*
+🌐 **Acesse agora:** *[[Link]](https://crypto-control-privacy.vercel.app/)*
 
 ---
 
@@ -74,3 +74,4 @@ Se o app te ajudou a organizar seus investimentos, considere apoiar:
 ---
 
 👤 Desenvolvido por Arthur Miguel
+
