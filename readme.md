@@ -1,5 +1,7 @@
 # 🛡️ Crypto Control — Rastreador de Portfólio 100% Seguro
 
+<img width="1195" height="848" alt="image" src="https://github.com/user-attachments/assets/a19fbdfe-9d57-4a64-87c8-1fb9c4661df9" />
+
 > **"Acompanhe os seus lucros, não a sua privacidade."**
 
 O **Crypto Control** é um gerenciador de portfólio de criptomoedas focado em **privacidade absoluta**.  
@@ -74,4 +76,5 @@ Se o app te ajudou a organizar seus investimentos, considere apoiar:
 ---
 
 👤 Desenvolvido por Arthur Miguel
+
 
