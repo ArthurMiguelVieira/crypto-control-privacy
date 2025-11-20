@@ -73,8 +73,15 @@ Se o app te ajudou a organizar seus investimentos, considere apoiar:
 **BTC:**  
 `bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0`
 
+**SATS**
+<p align="center">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=mailto:arthurmiguel@bipa.app" alt="QR Code Email" />
+</p>
+
+
 ---
 
 👤 Desenvolvido por Arthur Miguel
+
 
 
