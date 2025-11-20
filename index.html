@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crypto Control</title>
+    <title>Crypto Control V2</title>
     
-    <!-- Kit Mobile PWA -->
     <meta name="theme-color" content="#111827">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="CryptoControl">
     
-    <!-- Ícone do App (Certifique-se de que a imagem está na mesma pasta) -->
     <link rel="icon" type="image/jpeg" href="./CryptoControl_icon.png">
     <link rel="apple-touch-icon" href="./CryptoControl_icon.png">
 
@@ -20,7 +17,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* Estilos Gerais */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111827; }
         ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
@@ -31,63 +27,45 @@
             border: 1px solid rgba(75, 85, 99, 0.4);
         }
         
-        .live-indicator { display: inline-block; width: 6px; height: 6px; background-color: #34d399; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px #34d399; }
-        .live-indicator.busy { background-color: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
-        .live-indicator.error { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+            70% { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+        }
 
-        /* Ícones de Moeda (Estilo Token) */
-        .coin-icon-wrapper {
-            width: 32px; height: 32px; 
-            border-radius: 50%; 
-            overflow: hidden; 
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        .coin-img-primary { 
-            width: 100%; height: 100%; 
-            object-fit: cover; 
-            position: absolute; 
-            top: 0; left: 0; 
-        }
-        .coin-svg-fallback { 
-            width: 100%; height: 100%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            background-color: inherit; 
-        }
+        .live-indicator { display: inline-block; width: 6px; height: 6px; background-color: #34d399; border-radius: 50%; margin-right: 4px; animation: pulse-green 2s infinite; }
+        .live-indicator.busy { background-color: #3b82f6; animation: none; box-shadow: 0 0 8px #3b82f6; }
+        .live-indicator.error { background-color: #ef4444; animation: none; box-shadow: 0 0 8px #ef4444; }
+        .live-indicator.cache { background-color: #f59e0b; animation: none; }
+
+        /* Barra de Progresso no Topo */
+        #topProgressBarContainer { position: fixed; top: 0; left: 0; width: 100%; height: 3px; z-index: 9999; pointer-events: none; }
+        #topProgressBar { height: 100%; background: #3b82f6; width: 0; transition: width 0.3s ease-out; box-shadow: 0 0 10px #3b82f6; }
+        
+        .coin-icon-wrapper { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+        .coin-img-primary { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        .coin-svg-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: inherit; }
         .coin-svg-fallback svg { width: 65%; height: 65%; }
 
-        /* Console Hacker */
         .hacker-font { font-family: 'Courier New', monospace; letter-spacing: -0.5px; }
-        .log-entry { border-bottom: 1px solid rgba(75, 85, 99, 0.3); padding: 2px 0; }
-        .log-success { color: #4ade80; } .log-error { color: #f87171; } .log-info { color: #60a5fa; }
-
-        /* Barra de Progresso */
-        #queueProgressContainer { position: fixed; top: 0; left: 0; width: 100%; height: 2px; z-index: 200; }
-        #queueProgressBar { height: 100%; background: #3b82f6; width: 0; transition: width 0.2s ease-out; }
+        .log-entry { border-bottom: 1px solid rgba(75, 85, 99, 0.3); padding: 2px 0; font-size: 10px; }
+        .log-success { color: #4ade80; } .log-error { color: #f87171; } .log-info { color: #60a5fa; } .log-warn { color: #f59e0b; }
         
-        /* Blur de Privacidade */
-        .privacy-blur {
-            filter: blur(5px);
-            user-select: none;
-            opacity: 0.6;
-            transition: filter 0.3s ease;
-        }
+        .privacy-blur { filter: blur(5px); user-select: none; opacity: 0.6; transition: filter 0.3s ease; }
+        
+        /* Botão Range Ativo */
+        .range-btn.active { background-color: #374151; color: #fff; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col relative select-none">
 
-    <div id="queueProgressContainer" class="hidden"><div id="queueProgressBar"></div></div>
+    <div id="topProgressBarContainer"><div id="topProgressBar"></div></div>
 
-    <!-- 1. Modal de Ajuda -->
+    <!-- 1. Modal Ajuda -->
     <div id="helpModal" class="fixed inset-0 bg-black/90 hidden z-[140] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-0 rounded-xl w-full max-w-md shadow-2xl relative overflow-hidden">
             <div class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
-                <h2 class="text-lg font-bold text-white flex items-center"><i class="fa-solid fa-circle-question text-blue-500 mr-2"></i> Ajuda</h2>
+                <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-circle-question text-blue-500 mr-2"></i> Ajuda</h2>
                 <button onclick="document.getElementById('helpModal').classList.add('hidden')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
             </div>
             <div class="p-5 space-y-4 text-sm text-gray-300">
@@ -98,10 +76,11 @@
                         <p class="text-[11px] mt-1 leading-tight">Seus dados são salvos <strong>somente neste dispositivo</strong>. Não há nuvem. Se limpar o cache, os dados somem. Faça backups!</p>
                     </div>
                 </div>
+                <h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-700 pb-1">Funcionalidades</h3>
                 <ul class="space-y-2 list-disc pl-4 text-xs">
-                    <li><strong>Olho (<i class="fa-solid fa-eye"></i>):</strong> Oculta saldos e quantidades para privacidade em vídeos.</li>
-                    <li><strong>Sincronizar:</strong> Transfira dados entre PC e Celular via código.</li>
-                    <li><strong>Ícones:</strong> Bolinhas coloridas indicam a moeda.</li>
+                    <li><strong>Olho (<i class="fa-solid fa-eye"></i>):</strong> Oculta saldos.</li>
+                    <li><strong>Sincronizar:</strong> Use para transferir dados.</li>
+                    <li><strong>Cache Inteligente:</strong> Baixa 1 ano de histórico e reutiliza. Trocar datas é instantâneo.</li>
                 </ul>
             </div>
         </div>
@@ -111,12 +90,12 @@
     <div id="simulatorModal" class="fixed inset-0 bg-black/90 hidden z-[135] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-6 rounded-xl w-full max-w-sm shadow-2xl relative">
             <button onclick="document.getElementById('simulatorModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
-            <h2 class="text-lg font-bold mb-4 text-white flex items-center"><i class="fa-solid fa-wand-magic-sparkles text-yellow-400 mr-2"></i> Simulador</h2>
+            <h2 class="text-lg font-bold mb-4 text-white"><i class="fa-solid fa-wand-magic-sparkles text-yellow-400 mr-2"></i> Simulador</h2>
             <div class="mb-4">
                 <label class="text-xs text-gray-400 mb-1 block">Se o Bitcoin valer (USD):</label>
                 <input type="number" id="simPriceInput" placeholder="Ex: 150000" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white text-lg focus:border-yellow-500 outline-none">
             </div>
-            <button onclick="app.runSimulation()" class="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold py-2 rounded shadow-lg transform active:scale-95 transition">Calcular Patrimônio</button>
+            <button onclick="app.runSimulation()" class="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold py-2 rounded shadow-lg">Calcular Patrimônio</button>
             <div id="simResult" class="hidden mt-4 text-center bg-black/30 p-3 rounded border border-gray-700">
                 <p class="text-gray-500 text-[10px] uppercase">Projeção</p>
                 <div class="text-2xl font-bold text-green-400" id="simTotalValue">...</div>
@@ -125,7 +104,7 @@
         </div>
     </div>
 
-    <!-- 3. Modal Configurações (Unificado) -->
+    <!-- 3. Modal Configurações -->
     <div id="settingsModal" class="fixed inset-0 bg-black/90 hidden z-[130] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-0 rounded-xl w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
@@ -133,44 +112,45 @@
                 <button onclick="app.closeSettings()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
             </div>
             <div class="p-5 space-y-6">
-                <!-- Backup -->
                 <div>
-                    <h3 class="text-[10px] font-bold text-green-500 uppercase mb-2 border-b border-gray-700 pb-1">Backup (Arquivo)</h3>
+                    <h3 class="text-[10px] font-bold text-green-500 uppercase mb-2 border-b border-gray-700 pb-1">Backup</h3>
                     <div class="flex gap-2">
-                        <button onclick="app.smartSave()" class="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white font-bold"><i class="fa-solid fa-download mr-1"></i> Salvar</button>
-                        <button onclick="document.getElementById('importFile').click()" class="flex-1 py-2 border border-gray-600 hover:bg-gray-700 rounded text-xs text-gray-300"><i class="fa-solid fa-upload mr-1"></i> Ler</button>
+                        <button onclick="app.smartSave()" class="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white font-bold">Salvar</button>
+                        <button onclick="document.getElementById('importFile').click()" class="flex-1 py-2 border border-gray-600 hover:bg-gray-700 rounded text-xs text-gray-300">Ler</button>
                         <input type="file" id="importFile" accept=".json" class="hidden" onchange="app.importData(this)">
                     </div>
                 </div>
-                <!-- Sync Texto -->
                 <div>
-                    <h3 class="text-[10px] font-bold text-purple-500 uppercase mb-2 border-b border-gray-700 pb-1">Sincronizar (Texto)</h3>
+                    <h3 class="text-[10px] font-bold text-purple-500 uppercase mb-2 border-b border-gray-700 pb-1">Sincronizar (Texto/JSON)</h3>
                     <div class="flex gap-2 mb-2">
                         <input type="text" id="exportCodeInput" readonly class="flex-1 bg-black/30 border border-gray-600 rounded px-2 text-[10px] text-gray-500 truncate" value="...">
                         <button onclick="app.generateExportCode()" class="bg-purple-600 px-3 rounded text-xs font-bold text-white hover:bg-purple-500">Copiar</button>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="importCodeInput" placeholder="Cole o código..." class="flex-1 bg-black/30 border border-gray-600 rounded px-2 text-[10px] text-white outline-none focus:border-purple-500">
+                        <input type="text" id="importCodeInput" placeholder="Cole o código ou JSON..." class="flex-1 bg-black/30 border border-gray-600 rounded px-2 text-[10px] text-white outline-none focus:border-purple-500">
                         <button onclick="app.importFromCode()" class="bg-gray-700 px-3 rounded text-xs font-bold text-white hover:bg-gray-600">Ok</button>
                     </div>
                 </div>
-                <!-- API -->
                 <div>
-                    <h3 class="text-[10px] font-bold text-blue-500 uppercase mb-2 border-b border-gray-700 pb-1">API CoinGecko</h3>
+                    <h3 class="text-[10px] font-bold text-blue-500 uppercase mb-2 border-b border-gray-700 pb-1">API</h3>
                     <form id="settingsForm" class="space-y-2">
                         <div class="flex gap-2 text-xs">
                             <label class="flex items-center cursor-pointer"><input type="radio" name="apiType" value="free" class="mr-1" checked> <span class="text-gray-300">Free</span></label>
-                            <label class="flex items-center cursor-pointer"><input type="radio" name="apiType" value="key" class="mr-1"> <span class="text-gray-300">Pro Key</span></label>
+                            <label class="flex items-center cursor-pointer"><input type="radio" name="apiType" value="key" class="mr-1"> <span class="text-gray-300">Pro</span></label>
                         </div>
                         <div id="apiKeyField" class="hidden"><input type="text" id="apiKeyInput" placeholder="API Key..." class="w-full bg-black/30 border border-gray-600 rounded p-1 text-xs text-white"></div>
                         <button type="submit" class="w-full py-1 bg-blue-600 rounded text-xs font-bold text-white hover:bg-blue-500">Salvar API</button>
                     </form>
                 </div>
+                <div>
+                    <button onclick="app.forceClearCache()" class="w-full py-1 border border-orange-500/30 text-orange-400 rounded text-xs hover:bg-orange-500/10 mb-2">Limpar Cache</button>
+                    <button onclick="localStorage.clear(); location.reload()" class="w-full py-1 border border-red-500/30 text-red-400 rounded text-xs hover:bg-red-500/10">Resetar App</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 4. Search Modal -->
+    <!-- 4. Busca -->
     <div id="searchModal" class="fixed inset-0 bg-black/90 hidden z-[120] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-6 rounded-xl w-full max-w-md shadow-2xl relative">
             <button onclick="document.getElementById('searchModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-500 hover:text-white"><i class="fa-solid fa-times"></i></button>
@@ -203,24 +183,26 @@
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <div class="w-8 h-8 rounded-full overflow-hidden shadow-lg border border-blue-500/30">
-                    <!-- Ícone da Navbar usando a imagem local -->
                     <img src="./CryptoControl_icon.png" class="w-full h-full object-cover" alt="Logo">
                 </div>
                 <h1 class="text-lg font-bold tracking-tight text-white">Crypto<span class="text-blue-500">Control</span></h1>
             </div>
             
             <div class="flex items-center space-x-2">
-                <!-- Currency Toggle -->
+                <!-- Status da API + Timer de Cooldown -->
+                <div id="apiStatus" class="flex items-center bg-black/40 px-2 py-1 rounded border border-gray-700/50 text-[10px] mr-1 min-w-[70px] justify-center transition-all">
+                    <span class="live-indicator"></span> <span class="text-gray-400 font-mono">...</span>
+                </div>
+
                 <div class="flex bg-gray-900 rounded p-0.5 border border-gray-700">
                     <button onclick="app.setCurrency('BRL')" id="btn-currency-brl" class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-600 text-white transition">BRL</button>
                     <button onclick="app.setCurrency('USD')" id="btn-currency-usd" class="px-2 py-0.5 text-[10px] font-bold rounded text-gray-400 hover:text-white transition">USD</button>
                 </div>
                 
-                <!-- Icons -->
                 <button onclick="document.getElementById('simulatorModal').classList.remove('hidden')" class="p-1.5 text-yellow-400 hover:bg-gray-700 rounded transition"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
                 <button onclick="document.getElementById('helpModal').classList.remove('hidden')" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-circle-question"></i></button>
                 <button onclick="app.openSettings()" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-gear"></i></button>
-                <button onclick="app.refreshAll()" class="p-1.5 text-blue-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-sync"></i></button>
+                <button onclick="app.refreshAll(true)" class="p-1.5 text-blue-400 hover:text-white hover:bg-gray-700 rounded transition" title="Forçar Atualização"><i class="fa-solid fa-sync"></i></button>
                 <button onclick="app.toggleConsole()" class="p-1.5 text-gray-500 hover:text-green-400 hover:bg-gray-700 rounded transition"><i class="fa-solid fa-terminal"></i></button>
             </div>
         </div>
@@ -235,7 +217,6 @@
             <div class="glass-panel rounded-xl p-6 shadow-lg relative overflow-hidden group">
                 <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition"><i class="fa-solid fa-wallet text-6xl text-white"></i></div>
                 
-                <!-- Cabeçalho com Olho de Privacidade -->
                 <div class="flex items-center mb-1">
                     <h2 class="text-xs font-bold text-gray-400 uppercase mr-2">Patrimônio Total</h2>
                     <button onclick="app.togglePrivacy()" class="text-gray-500 hover:text-white transition text-xs" title="Ocultar/Mostrar Valores">
@@ -248,8 +229,24 @@
                     <div><div class="text-[10px] text-gray-500 uppercase">Investido</div><div class="text-sm text-gray-300 font-mono" id="totalInvested">...</div></div>
                     <div class="text-right"><div class="text-[10px] text-gray-500 uppercase">Lucro/Prejuízo</div><div class="text-sm font-bold font-mono" id="totalPnL">...</div></div>
                 </div>
-                <div class="absolute top-4 right-4 text-[10px] text-gray-500 flex items-center" id="apiStatus">
-                    <span class="live-indicator"></span> API
+            </div>
+
+            <!-- Mayer Multiple Card (NOVO) -->
+            <div class="glass-panel rounded-xl p-4 shadow-lg relative overflow-hidden">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase">Mayer Multiple (BTC)</h3>
+                    <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded text-gray-500">Bitbo Style</span>
+                </div>
+                <div class="flex items-end gap-2">
+                    <div class="text-2xl font-bold text-white" id="mayerValue">---</div>
+                    <div class="text-xs text-gray-400 mb-1" id="mayerStatus">Carregando...</div>
+                </div>
+                <!-- Progress Bar Visual for Mayer -->
+                <div class="w-full bg-gray-800 h-2 mt-2 rounded-full overflow-hidden relative">
+                    <div class="absolute top-0 left-0 h-full w-1/3 bg-green-500/30"></div>
+                    <div class="absolute top-0 left-1/3 h-full w-1/3 bg-yellow-500/30"></div>
+                    <div class="absolute top-0 right-0 h-full w-1/3 bg-red-500/30"></div>
+                    <div id="mayerIndicator" class="h-full w-1 bg-white absolute top-0 shadow-[0_0_10px_white] transition-all duration-500" style="left: 0%"></div>
                 </div>
             </div>
 
@@ -286,6 +283,7 @@
                             <input type="number" step="0.00000001" id="amountInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
                         </div>
                         <div>
+                            <!-- Label Dinâmico: Total (R$) ou Total (USD) -->
                             <label class="text-[10px] text-gray-400 block mb-1">Total (<span id="costCurrencyLabel">R$</span>)</label>
                             <input type="number" step="0.01" id="costInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
                         </div>
@@ -306,10 +304,10 @@
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-xs font-bold text-gray-400">Histórico</h3>
                     <div class="flex bg-gray-800 rounded p-0.5">
-                        <button onclick="app.changeRange(30)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">30D</button>
-                        <button onclick="app.changeRange(90)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">90D</button>
-                        <button onclick="app.changeRange(180)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">6M</button>
-                        <button onclick="app.changeRange(365)" class="px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700">1A</button>
+                        <button onclick="app.changeRange(30)" id="range30" class="range-btn active px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700 transition">30D</button>
+                        <button onclick="app.changeRange(90)" id="range90" class="range-btn px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700 transition">90D</button>
+                        <button onclick="app.changeRange(180)" id="range180" class="range-btn px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700 transition">6M</button>
+                        <button onclick="app.changeRange(365)" id="range365" class="range-btn px-2 py-0.5 text-[10px] rounded text-gray-400 hover:text-white hover:bg-gray-700 transition">1A</button>
                     </div>
                 </div>
                 <div class="w-full h-56 relative"><canvas id="historyChart"></canvas></div>
@@ -338,21 +336,25 @@
     
     <footer class="border-t border-gray-800 mt-6 py-8 text-center bg-gray-900/90 backdrop-blur-md">
         <p class="text-gray-500 text-sm font-mono mb-4">By Arthur Miguel</p>
-        <!-- Donation Section -->
         <div class="inline-block bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 max-w-sm mx-auto">
-            <p class="text-xs text-gray-400 mb-2 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-heart text-red-500"></i> Apoie o desenvolvimento
-            </p>
+            <p class="text-xs text-gray-400 mb-2 px-2"><i class="fa-solid fa-heart text-red-500 mr-2"></i>Se este projeto te ajudou, considere apoiar com um café ☕</p>
+            <div class="mb-2 bg-white p-2 rounded-lg inline-block">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=lightning:arthurmiguel@bipa.app" alt="QR" class="w-32 h-32">
+            </div>
+            <div class="flex items-center gap-2 bg-black/30 rounded p-2 cursor-pointer hover:bg-black/50 transition mb-2" onclick="app.copyLightningAddress()">
+                <div class="bg-yellow-500 text-black w-5 h-5 rounded-full flex items-center justify-center"><i class="fa-solid fa-bolt text-[10px]"></i></div>
+                <span class="text-[10px] font-mono text-gray-300">arthurmiguel@bipa.app</span>
+                <i class="fa-regular fa-copy text-yellow-400 text-lg group-hover:scale-110 transition ml-2"></i>
+            </div>
             <div class="flex items-center gap-2 bg-black/30 rounded p-2 cursor-pointer hover:bg-black/50 transition" onclick="app.copyDonationAddress()">
-                <i class="fa-brands fa-bitcoin text-yellow-500 text-lg"></i>
-                <span class="text-[10px] font-mono text-gray-300 break-all select-all">Bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0</span>
-                <i class="fa-regular fa-copy text-gray-500 text-xs ml-1"></i>
+                <i class="fa-brands fa-bitcoin text-gray-500"></i>
+                <span class="text-[10px] font-mono text-gray-300 truncate w-48">Bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0</span>
+                <i class="fa-regular fa-copy text-gray-500 text-xs"></i>
             </div>
         </div>
     </footer>
 
     <script>
-        // CONFIGURAÇÃO DE ÍCONES (24x24 Paths)
         const ICONS = {
             BTC: '<path d="M17.05,10.28C16.5,8.11 14.75,6.4 12.31,5.88V3.38H9.81V5.88H8.31V3.38H5.81V5.92H2.31V8.42H3.81C4.64,8.42 5.31,9.09 5.31,9.92V17.56C5.31,18.39 4.64,19.06 3.81,19.06H2.31V21.56H5.81V21.56H5.81V24.06H8.31V21.53H9.81V24.03H12.31V21.14C15.39,20.73 17.62,18.68 17.19,15.86C16.96,14.37 16.09,13.26 14.93,12.69C15.96,12.15 16.78,11.03 17.05,10.28M13.03,17.53H10.34V14.03H13.03C14,14.03 14.78,14.81 14.78,15.78C14.78,16.75 14,17.53 13.03,17.53M12.55,12.03H10.34V9.03H12.55C13.38,9.03 14.05,9.7 14.05,10.53C14.05,11.36 13.38,12.03 12.55,12.03Z"/>',
             ETH: '<path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z"/>',
@@ -373,349 +375,557 @@
 
         class CryptoApp {
             constructor() {
+                window.onerror = (msg) => console.error("App Error: " + msg);
+
                 const savedCustom = safeParse('crypto_custom_coins', {});
                 this.coinMap = { ...savedCustom, ...DEFAULT_COINS }; 
                 this.transactions = safeParse('crypto_txs', []);
                 this.apiConfig = safeParse('crypto_api_config', { type: 'free', key: '' });
                 this.displayCurrency = localStorage.getItem('crypto_currency') || 'BRL';
-                this.privacyMode = false; // Modo privacidade
+                this.privacyMode = false;
 
-                this.historyCache = {};
+                this.cacheDuration = 300000; // 5 Minutos
+                this.prices = {};
+                this.rateBrlToUsd = 0;
+                this.nextUpdate = 0; 
+                this.isAutoRefreshing = false; 
+
                 this.requestQueue = [];
                 this.isProcessingQueue = false;
-                this.prices = {};
-                this.chartDays = 30;
-                this.rateBrlToUsd = 0;
+                this.chartDays = safeParse('crypto_chart_days', 30); // Carrega preferência de dias
+                
+                this.queueDelay = 15000; // 15s delay (4 req/min)
+                this.cooldownTime = 0; 
+                
+                this.historyCache = safeParse('crypto_history_cache', {}); 
+
+                // Bindings
+                this.log = this.log.bind(this);
+                this.refreshAll = this.refreshAll.bind(this);
+                this.toggleConsole = this.toggleConsole.bind(this);
+                this.openSettings = this.openSettings.bind(this);
+                this.closeSettings = this.closeSettings.bind(this);
+                this.updateFormTheme = this.updateFormTheme.bind(this);
+                this.saveSettings = this.saveSettings.bind(this);
+                this.handleAddTransaction = this.handleAddTransaction.bind(this);
+                this.setApiStatusUI = this.setApiStatusUI.bind(this);
+                this.addToQueue = this.addToQueue.bind(this);
+                this.processQueue = this.processQueue.bind(this);
+                this.getIconHtml = this.getIconHtml.bind(this);
+                this.formatMoney = this.formatMoney.bind(this);
+                this.formatQuantity = this.formatQuantity.bind(this);
+                this.updateCurrencyUI = this.updateCurrencyUI.bind(this);
+                this.forceClearCache = this.forceClearCache.bind(this);
+                this.renderHistory = this.renderHistory.bind(this);
+                this.updateDonut = this.updateDonut.bind(this);
+                this.updateLineChart = this.updateLineChart.bind(this);
+                this.importData = this.importData.bind(this);
+                this.updateTitle = this.updateTitle.bind(this);
+                this.updateRangeUI = this.updateRangeUI.bind(this);
+                this.fetchHistory = this.fetchHistory.bind(this);
 
                 this.initUI();
+                this.loadPricesFromCache();
                 this.refreshAll();
-                setInterval(() => this.refreshAll(), 60000);
-            }
-
-            // Toggle de Privacidade
-            togglePrivacy() {
-                this.privacyMode = !this.privacyMode;
-                // Atualiza ícone do olho (Mobile)
-                const iconMobile = document.getElementById('privacyIconMobile');
-                if (iconMobile) {
-                    if (this.privacyMode) {
-                        iconMobile.classList.remove('fa-eye');
-                        iconMobile.classList.add('fa-eye-slash');
-                    } else {
-                        iconMobile.classList.remove('fa-eye-slash');
-                        iconMobile.classList.add('fa-eye');
-                    }
-                }
-
-                // Atualiza ícone do olho (Navbar Desktop)
-                const iconDesktop = document.getElementById('privacyIcon');
-                if (iconDesktop) {
-                    // Não existe na navbar desktop nessa versão, mas mantemos lógica caso exista
-                }
                 
-                // Re-renderiza tudo
-                this.calculatePortfolio();
+                setInterval(() => this.updateCooldownVisual(), 1000);
             }
 
-            // Formata valor monetário com privacidade
+            // --- UI HELPERS ---
+            getIconHtml(config) {
+                if (config && config.path) {
+                    const bg = config.symbol === 'XRP' ? '#333' : config.color;
+                    return `<div class="coin-icon-wrapper" style="background-color: ${bg}"><img src="${config.image}" class="coin-img-primary" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"><div class="coin-svg-fallback" style="display: none;"><svg viewBox="0 0 24 24" fill="#ffffff">${config.path}</svg></div></div>`;
+                }
+                return `<img src="${config.image}" class="w-full h-full rounded-full">`;
+            }
+
             formatMoney(value, symbol) {
                 if (this.privacyMode) return '••••••';
                 return `${symbol} ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             }
             
-            // Formata quantidade com privacidade
             formatQuantity(value, symbol) {
                 if (this.privacyMode) return '••••••';
                 return `${value.toFixed(6)} ${symbol}`;
             }
+
+            toggleConsole() { const el = document.getElementById('consoleModal'); if(el) el.classList.toggle('hidden'); }
+            openSettings() { const el = document.getElementById('settingsModal'); if(el) el.classList.remove('hidden'); }
+            closeSettings() { const el = document.getElementById('settingsModal'); if(el) el.classList.add('hidden'); }
             
-            copyDonationAddress() {
-                const addr = "Bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0";
-                navigator.clipboard.writeText(addr);
-                alert("Endereço copiado! Obrigado pelo apoio 🚀");
+            log(msg, type='info') { 
+                const b = document.getElementById('consoleBody'); 
+                if(!b) return;
+                const d = document.createElement('div'); 
+                d.className = `log-entry log-${type}`; 
+                d.innerText = `> ${msg}`; 
+                b.appendChild(d); 
+                b.scrollTop = b.scrollHeight; 
             }
 
-            // GERA HTML DO ÍCONE (BOLA COLORIDA + SVG BRANCO)
-            getIconHtml(config) {
-                if (config.path) {
-                    const bg = config.symbol === 'XRP' ? '#333' : config.color;
-                    return `
-                    <div class="coin-icon-wrapper" style="background-color: ${bg}">
-                        <img src="${config.image}" class="coin-img-primary" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                        <div class="coin-svg-fallback" style="display: none;">
-                            <svg viewBox="0 0 24 24" fill="#ffffff">${config.path}</svg>
-                        </div>
-                    </div>`;
+            updateCooldownVisual() {
+                const diff = Math.max(0, Math.ceil((this.cooldownTime - Date.now()) / 1000));
+                const elStatus = document.getElementById('apiStatus');
+                if(!elStatus) return;
+                const txt = elStatus.querySelector('span:last-child');
+                
+                if(this.isProcessingQueue && diff > 0 && txt) {
+                    txt.innerText = `⏳ ${diff}s`;
+                    txt.className = 'text-blue-300 font-mono animate-pulse';
                 }
-                return `<img src="${config.image}" class="w-full h-full rounded-full">`;
             }
 
+            setApiStatusUI(text, type) {
+                const el = document.getElementById('apiStatus');
+                if(!el) return;
+                const dot = el.querySelector('.live-indicator');
+                const txt = el.querySelector('span:last-child');
+                
+                if(dot) dot.className = `live-indicator mr-1 ${type === 'live' ? '' : type}`;
+                if(txt) {
+                    txt.innerText = text;
+                    txt.className = 'font-mono ' + (type === 'live' ? 'text-green-400' : type === 'cache' ? 'text-yellow-500' : type === 'busy' ? 'text-blue-400 animate-pulse' : 'text-red-400');
+                }
+            }
+
+            updateProgressBar(pct) {
+                const bar = document.getElementById('topProgressBar');
+                if(bar) {
+                    bar.style.width = `${pct}%`;
+                    if(pct >= 100 || pct === 0) setTimeout(() => { if(bar) bar.style.width = '0%'; }, 500);
+                }
+            }
+
+            getApiUrl(ep) {
+                let u = `https://api.coingecko.com/api/v3${ep}`;
+                if(this.apiConfig.type === 'key' && this.apiConfig.key) u += `${u.includes('?')?'&':'?'}x_cg_demo_api_key=${this.apiConfig.key}`;
+                return u;
+            }
+
+            updateTitle() {
+                if(this.privacyMode) { document.title = "Crypto Control V2"; return; }
+                if(this.prices && this.prices.bitcoin) {
+                    const btc = this.displayCurrency === 'BRL' ? this.prices.bitcoin.brl : this.prices.bitcoin.usd;
+                    const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+                    document.title = `BTC ${sym} ${(btc/1000).toFixed(1)}k`;
+                }
+            }
+
+            updateRangeUI() {
+                document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+                const btn = document.getElementById(`range${this.chartDays}`);
+                if(btn) btn.classList.add('active');
+            }
+
+            // --- INIT ---
             initUI() {
                 const dateInput = document.getElementById('dateInput');
                 if(dateInput) dateInput.valueAsDate = new Date();
+                
                 this.populateCoinSelect();
                 this.updateCurrencyUI();
                 this.updateFormTheme();
-                this.updateApiStatusUI();
-
-                document.getElementById('settingsForm').onsubmit = (e) => this.saveSettings(e);
-                document.getElementById('txForm').onsubmit = (e) => this.handleAddTransaction(e);
+                this.setApiStatusUI('Pronto', 'live');
+                this.updateRangeUI();
+                
+                // Listeners
+                const setForm = document.getElementById('settingsForm');
+                if(setForm) setForm.onsubmit = this.saveSettings;
+                
+                const txForm = document.getElementById('txForm');
+                if(txForm) txForm.onsubmit = this.handleAddTransaction;
+                
                 document.querySelectorAll('input[name="apiType"]').forEach(r => {
-                    r.onchange = (e) => document.getElementById('apiKeyField').classList.toggle('hidden', e.target.value === 'free');
+                    r.onchange = (e) => {
+                        const f = document.getElementById('apiKeyField');
+                        if(f) f.classList.toggle('hidden', e.target.value === 'free');
+                    }
                 });
             }
 
-            // --- Queue ---
+            populateCoinSelect() {
+                const sel = document.getElementById('coinSelect');
+                if(!sel) return;
+                sel.innerHTML = '';
+                
+                // Sort Bitcoin first
+                const sortedIds = Object.keys(this.coinMap).sort((a, b) => {
+                    if (a === 'bitcoin') return -1;
+                    if (b === 'bitcoin') return 1;
+                    return this.coinMap[a].name.localeCompare(this.coinMap[b].name);
+                });
+
+                sortedIds.forEach(id => {
+                    const c = this.coinMap[id];
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.text = `${c.name} (${c.symbol})`;
+                    sel.appendChild(opt);
+                });
+                if(this.coinMap['bitcoin']) sel.value = 'bitcoin';
+            }
+
+            updateFormTheme() {
+                const sel = document.getElementById('coinSelect');
+                if(!sel) return;
+                const c = this.coinMap[sel.value];
+                if(!c) return;
+                
+                const iconDiv = document.getElementById('formIconContainer');
+                if(iconDiv) iconDiv.innerHTML = this.getIconHtml(c);
+                
+                const btn = document.getElementById('submitBtn');
+                if(btn) btn.style.backgroundColor = c.color || '#d97706';
+                
+                const form = document.getElementById('formContainer');
+                if(form) form.style.borderColor = c.color || '#d97706';
+            }
+
+            // --- QUEUE SYSTEM ---
             addToQueue(taskFn) {
                 this.requestQueue.push(taskFn);
-                this.updateQueueUI();
                 if (!this.isProcessingQueue) this.processQueue();
             }
+
             async processQueue() {
-                if (this.requestQueue.length === 0) { this.isProcessingQueue = false; this.updateQueueUI(); return; }
+                if (this.requestQueue.length === 0) {
+                    this.isProcessingQueue = false;
+                    this.updateProgressBar(0);
+                    this.setApiStatusUI('API OK', 'live');
+                    return;
+                }
                 this.isProcessingQueue = true;
                 const task = this.requestQueue.shift();
-                try {
-                    await task();
-                    await new Promise(r => setTimeout(r, this.apiConfig.type === 'free' ? 800 : 150)); // Acelerei um pouco
-                } catch (e) {
-                    this.log(`Erro: ${e.message}`, 'error');
-                    if(e.message && e.message.includes('429')) await new Promise(r => setTimeout(r, 5000));
-                }
-                this.updateQueueUI();
+                this.cooldownTime = Date.now() + this.queueDelay;
+                
+                this.setApiStatusUI('Carregando...', 'busy');
+                try { await task(); } catch(e) { this.log('Queue Error', 'error'); }
+
+                await new Promise(r => setTimeout(r, this.queueDelay));
                 this.processQueue();
             }
-            updateQueueUI() {
-                const bar = document.getElementById('queueProgressBar');
-                const container = document.getElementById('queueProgressContainer');
-                if (this.isProcessingQueue) {
-                    container.classList.remove('hidden');
-                    bar.style.width = '100%';
-                    bar.classList.add('animate-pulse');
-                } else {
-                    setTimeout(() => container.classList.add('hidden'), 500);
+
+            // --- DATA ---
+            loadPricesFromCache() {
+                const cached = safeParse('crypto_prices_cache', null);
+                if (cached && cached.data) {
+                    this.prices = cached.data;
+                    this.rateBrlToUsd = cached.rate || 0;
+                    this.nextUpdate = cached.ts + this.cacheDuration;
+                    if(Date.now() > this.nextUpdate) this.nextUpdate = Date.now();
+                    
+                    this.calculatePortfolio();
+                    this.setApiStatusUI('Cache', 'cache');
+                    this.log('Cache carregado.', 'info');
+                    
+                    // Tenta carregar gráfico imediatamente do cache
+                    this.fetchHistory(); 
                 }
             }
 
-            // --- Simulator ---
-            runSimulation() {
-                const target = parseFloat(document.getElementById('simPriceInput').value);
-                if (!target) return alert('Digite um valor!');
-                const btcPrice = this.prices.bitcoin ? this.prices.bitcoin.usd : 0;
-                if (btcPrice === 0) return alert('Aguarde carregamento.');
+            async refreshAll(force = false) {
+                if(this.isAutoRefreshing) return;
                 
-                const growth = target / btcPrice;
-                let projectedTotal = 0;
-
-                Object.keys(this.coinMap).forEach(id => {
-                    const qty = this.transactions.filter(t => t.coinId === id)
-                        .reduce((acc, t) => t.type === 'buy' ? acc + t.amount : acc - t.amount, 0);
-                    if (qty <= 0) return;
-                    
-                    const price = this.prices[id] ? this.prices[id].usd : 0;
-                    const currentVal = qty * price;
-                    const projVal = id === 'bitcoin' ? qty * target : currentVal * growth;
-                    projectedTotal += projVal;
-                });
-
-                if (this.displayCurrency === 'BRL' && this.rateBrlToUsd > 0) projectedTotal = projectedTotal / this.rateBrlToUsd;
-                const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
-                document.getElementById('simResult').classList.remove('hidden');
-                
-                // Aplica privacidade aqui também
-                const valDisplay = this.privacyMode ? '••••••' : `${sym} ${projectedTotal.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
-                document.getElementById('simTotalValue').innerText = valDisplay;
-                document.getElementById('simProfit').innerText = `Crescimento: ${(growth*100-100).toFixed(1)}%`;
-            }
-
-            // --- Core ---
-            async refreshAll() {
+                const now = Date.now();
                 const ids = Object.keys(this.coinMap).join(',');
-                this.addToQueue(async () => {
+                
+                if (!force && this.nextUpdate > now && Object.keys(this.prices).length > 0) {
+                    this.log('Cache válido.', 'info');
+                    this.fetchHistory(); // Garante que grafico carregue mesmo se preco estiver em cache
+                    return;
+                }
+
+                this.isAutoRefreshing = true;
+                this.setApiStatusUI('Buscando...', 'busy');
+                this.log('Atualizando preços...', 'info');
+                this.nextUpdate = Date.now() + 60000;
+
+                try {
                     const url = this.getApiUrl(`/simple/price?ids=${ids}&vs_currencies=brl,usd&include_24hr_change=true`);
                     const res = await fetch(url);
                     if(!res.ok) throw new Error(res.status);
+                    
                     this.prices = await res.json();
                     if(this.prices.bitcoin) {
                         this.rateBrlToUsd = this.prices.bitcoin.usd / this.prices.bitcoin.brl;
-                        const btc = this.displayCurrency === 'BRL' ? this.prices.bitcoin.brl : this.prices.bitcoin.usd;
-                        const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
-                        // Oculta título se privacidade estiver ativa
-                        document.title = this.privacyMode ? 'Crypto Control' : `BTC ${sym} ${(btc/1000).toFixed(1)}k`;
                     }
+
+                    localStorage.setItem('crypto_prices_cache', JSON.stringify({
+                        ts: Date.now(), data: this.prices, rate: this.rateBrlToUsd
+                    }));
+                    
+                    this.nextUpdate = Date.now() + this.cacheDuration;
                     this.calculatePortfolio();
-                    document.getElementById('apiStatus').innerHTML = '<span class="live-indicator"></span> API Online';
-                });
-                this.fetchHistory();
+                    this.setApiStatusUI('API OK', 'live');
+                    this.log('Preços OK.', 'success');
+
+                    this.fetchHistory(force); 
+                } catch(e) {
+                    this.setApiStatusUI('Erro API', 'error');
+                    this.log('Erro API: ' + e.message, 'error');
+                } finally {
+                    this.isAutoRefreshing = false;
+                }
             }
 
-            fetchHistory() {
+            fetchHistory(force = false) {
                 const active = [...new Set(this.transactions.map(t => t.coinId))];
-                if(active.length === 0) active.push('bitcoin');
-                const targets = [...new Set([...active, 'bitcoin'])].slice(0, 5);
-                const vs = this.displayCurrency.toLowerCase();
-                const results = {};
-                let count = 0;
+                if(active.length === 0) {
+                    if(this.coinMap.bitcoin) active.push('bitcoin');
+                    else return;
+                }
+                if(!active.includes('bitcoin') && this.coinMap.bitcoin) active.unshift('bitcoin');
+                else if(active.includes('bitcoin')) {
+                     const idx = active.indexOf('bitcoin');
+                     if(idx > 0) { active.splice(idx, 1); active.unshift('bitcoin'); }
+                }
 
-                targets.forEach(id => {
+                const targets = [...new Set(active)].slice(0, 5); 
+                const vs = 'usd';
+                const now = Date.now();
+                const fetchDays = 365; // Sempre baixa 1 ano
+
+                this.requestQueue = []; 
+
+                targets.forEach((id, idx) => {
+                    const key = `${id}_usd_${fetchDays}`;
+                    
+                    if(!force && this.historyCache[key] && (now - this.historyCache[key].ts < 43200000)) {
+                        if(id === 'bitcoin') this.calculateMayer(this.historyCache[key].data);
+                        this.updateLineChart(targets); // Desenha se tiver cache
+                        return;
+                    }
+
                     this.addToQueue(async () => {
-                        const key = `${id}_${vs}_${this.chartDays}`;
-                        if(this.historyCache[key] && (Date.now() - this.historyCache[key].ts < 900000)) {
-                            results[id] = this.historyCache[key].data;
-                        } else {
-                            const res = await fetch(this.getApiUrl(`/coins/${id}/market_chart?vs_currency=${vs}&days=${this.chartDays}&interval=daily`));
-                            const json = await res.json();
-                            if(json.prices) {
-                                results[id] = json.prices;
-                                this.historyCache[key] = { ts: Date.now(), data: json.prices };
-                            }
+                        this.updateProgressBar(Math.round(((idx + 1) / targets.length) * 100));
+                        this.log(`Baixando: ${id}`, 'info');
+                        
+                        const res = await fetch(this.getApiUrl(`/coins/${id}/market_chart?vs_currency=${vs}&days=${fetchDays}&interval=daily`));
+                        if(res.status === 429) throw new Error('Rate Limit');
+                        const json = await res.json();
+                        
+                        if(json.prices) {
+                            this.historyCache[key] = { ts: Date.now(), data: json.prices };
+                            localStorage.setItem('crypto_history_cache', JSON.stringify(this.historyCache));
+                            if(id === 'bitcoin') this.calculateMayer(json.prices);
                         }
-                        count++;
-                        if(count === targets.length) this.updateLineChart(targets, results);
+                        this.updateLineChart(targets);
                     });
                 });
             }
 
             calculatePortfolio() {
                 const portfolio = {}; let totalBal=0, totalInv=0;
-                const curKey = this.displayCurrency.toLowerCase();
                 const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+                const isBRL = this.displayCurrency === 'BRL';
 
                 this.transactions.sort((a,b) => new Date(a.date) - new Date(b.date));
                 this.transactions.forEach(tx => {
                     if(!portfolio[tx.coinId]) portfolio[tx.coinId] = { qty:0, invest:0 };
                     let cost = tx.totalCost;
-                    const txCur = tx.currency || 'BRL';
-                    if(txCur !== this.displayCurrency && this.rateBrlToUsd > 0) {
-                        cost = txCur === 'BRL' ? cost * this.rateBrlToUsd : cost / this.rateBrlToUsd;
+                    const txIsBRL = (!tx.currency || tx.currency === 'BRL');
+                    if(txIsBRL !== isBRL && this.rateBrlToUsd > 0) {
+                        cost = txIsBRL ? cost * this.rateBrlToUsd : cost / this.rateBrlToUsd;
                     }
                     if(tx.type === 'buy') { portfolio[tx.coinId].qty += tx.amount; portfolio[tx.coinId].invest += cost; }
-                    else { const avg = portfolio[tx.coinId].invest/portfolio[tx.coinId].qty; portfolio[tx.coinId].invest -= avg*tx.amount; portfolio[tx.coinId].qty -= tx.amount; }
+                    else { 
+                        const avg = portfolio[tx.coinId].qty > 0 ? portfolio[tx.coinId].invest/portfolio[tx.coinId].qty : 0; 
+                        portfolio[tx.coinId].invest -= avg * tx.amount; 
+                        portfolio[tx.coinId].qty -= tx.amount; 
+                    }
                 });
 
                 const container = document.getElementById('assetsContainer');
-                container.innerHTML = '';
-                const labels=[], data=[], colors=[];
-
-                Object.keys(portfolio).forEach(id => {
-                    const item = portfolio[id];
-                    if(item.qty <= 0.000001) return;
-                    const config = this.coinMap[id];
-                    const price = this.prices[id] ? this.prices[id][curKey] : 0;
-                    const balance = item.qty * price;
-                    const profit = balance - item.invest;
-                    const pct = item.invest > 0 ? (profit/item.invest)*100 : 0;
+                if(container) {
+                    container.innerHTML = '';
+                    const labels=[], data=[], colors=[];
                     
-                    totalBal += balance; totalInv += item.invest;
-                    labels.push(config.name); data.push(balance); colors.push(config.color);
+                    Object.keys(portfolio).forEach(id => {
+                        const item = portfolio[id];
+                        if(item.qty <= 0.000001) return;
+                        const config = this.coinMap[id];
+                        if(!config) return;
 
-                    const icon = this.getIconHtml(config);
+                        const curKey = isBRL ? 'brl' : 'usd';
+                        const price = this.prices[id] ? this.prices[id][curKey] : 0;
+                        const balance = item.qty * price;
+                        const profit = balance - item.invest;
+                        const pct = item.invest > 0 ? (profit/item.invest)*100 : 0;
 
-                    // Formatação Condicional - AGORA COM QUANTIDADE
-                    const displayBalance = this.formatMoney(balance, sym);
-                    const displayPrice = this.formatMoney(price, sym);
-                    const displayPM = this.formatMoney(item.invest/item.qty, sym);
-                    const displayQty = this.formatQuantity(item.qty, config.symbol);
-                    
-                    container.innerHTML += `
-                        <div class="glass-panel rounded-xl p-4 border border-gray-700 relative overflow-hidden">
-                            <div class="flex justify-between mb-2 relative z-10">
+                        totalBal += balance; totalInv += item.invest;
+                        labels.push(config.name); data.push(balance); colors.push(config.color);
+
+                        const icon = this.getIconHtml(config);
+                        const sBal = this.formatMoney(balance, sym);
+                        const sPrice = this.formatMoney(price, sym);
+                        const sPM = this.formatMoney(item.invest/item.qty, sym);
+                        const sQty = this.formatQuantity(item.qty, config.symbol);
+
+                        container.innerHTML += `
+                        <div class="glass-panel rounded-xl p-4 border border-gray-700 relative overflow-hidden transition">
+                            <div class="flex justify-between items-center mb-2 relative z-10">
                                 <div class="flex items-center">
                                     <div class="mr-3">${icon}</div>
-                                    <div>
-                                        <div class="font-bold text-white text-sm">${config.name}</div>
-                                        <div class="text-xs text-gray-400">${displayQty}</div>
-                                    </div>
+                                    <div><div class="font-bold text-white text-sm">${config.name}</div><div class="text-xs text-gray-400 font-mono">${sQty}</div></div>
                                 </div>
-                                <div class="text-right"><div class="font-bold text-white">${displayBalance}</div><div class="text-[10px] text-gray-500">${displayPrice}</div></div>
+                                <div class="text-right"><div class="font-bold text-white text-sm">${sBal}</div><div class="text-[10px] text-gray-500">${sPrice}</div></div>
                             </div>
                             <div class="flex justify-between pt-2 border-t border-gray-700/50 text-xs relative z-10">
-                                <span class="text-gray-400">PM: ${displayPM}</span>
+                                <span class="text-gray-400">PM: ${sPM}</span>
                                 <span class="${profit>=0?'text-green-400':'text-red-400'} font-bold">${profit>=0?'+':''}${pct.toFixed(2)}%</span>
                             </div>
                             <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-5 filter blur-2xl" style="background-color:${config.color}"></div>
                         </div>`;
-                });
+                    });
+                    this.updateDonut(labels, data, colors);
+                }
 
                 const totProfit = totalBal - totalInv;
                 const totPct = totalInv > 0 ? (totProfit/totalInv)*100 : 0;
                 
-                document.getElementById('totalBalance').innerText = this.formatMoney(totalBal, sym);
-                document.getElementById('totalInvested').innerText = this.formatMoney(totalInv, sym);
+                const elBal = document.getElementById('totalBalance');
+                if(elBal) elBal.innerText = this.formatMoney(totalBal, sym);
+                const elInv = document.getElementById('totalInvested');
+                if(elInv) elInv.innerText = this.formatMoney(totalInv, sym);
+                const elPnL = document.getElementById('totalPnL');
+                if(elPnL) {
+                    const sP = this.privacyMode ? '••••••' : `${sym} ${totProfit.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+                    elPnL.innerHTML = `<span class="${totProfit>=0?'text-green-400':'text-red-400'}">${sP} (${totPct.toFixed(2)}%)</span>`;
+                }
                 
-                // Profit Value is Hidden, Percentage is Visible
-                const profitVal = this.privacyMode ? '••••••' : `${sym} ${totProfit.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
-                document.getElementById('totalPnL').innerHTML = `<span class="${totProfit>=0?'text-green-400':'text-red-400'}">${profitVal} (${totPct.toFixed(2)}%)</span>`;
-                
-                this.updateDonut(labels, data, colors);
+                this.updateTitle(); 
                 this.renderHistory();
-            }
-
-            updateDonut(labels, data, colors) {
-                const ctx = document.getElementById('portfolioChart').getContext('2d');
-                if(this.donutChart) this.donutChart.destroy();
-                document.getElementById('emptyChartMsg').classList.toggle('hidden', data.length > 0);
-                this.donutChart = new Chart(ctx, { 
-                    type: 'doughnut', 
-                    data: { labels, datasets: [{data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4}] }, 
-                    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: {legend:{display:false}} } 
-                });
             }
 
             renderHistory() {
                 const tbody = document.getElementById('historyTableBody');
+                if(!tbody) return;
                 tbody.innerHTML = '';
                 const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
+                
                 [...this.transactions].reverse().forEach(tx => {
                     const config = this.coinMap[tx.coinId] || DEFAULT_COINS.bitcoin;
                     const isBuy = tx.type === 'buy';
                     const originalSym = (!tx.currency || tx.currency === 'BRL') ? 'R$' : '$';
-                    let smallIcon = '';
-                    if(config.path) {
-                        const bg = config.symbol === 'XRP' ? '#333' : config.color;
-                        smallIcon = `<div class="w-4 h-4 mr-2 rounded-full flex items-center justify-center" style="background:${bg}"><svg viewBox="0 0 24 24" fill="#fff" class="w-2.5 h-2.5">${config.path}</svg></div>`;
-                    } else {
-                        smallIcon = `<img src="${config.image}" class="w-4 h-4 mr-2 rounded-full">`;
-                    }
+                    const icon = this.getIconHtml(config).replace('w-full h-full', 'w-4 h-4').replace('32px', '16px'); 
+                    const smallIcon = `<div class="w-4 h-4 mr-2 rounded-full overflow-hidden flex items-center justify-center">${icon}</div>`;
                     
-                    // Hide Cost if Privacy Mode
-                    const displayCost = this.privacyMode ? '••••••' : `${originalSym} ${tx.totalCost.toLocaleString()}`;
-                    // Hide Qty if Privacy Mode
-                    const displayQty = this.formatQuantity(tx.amount, "");
+                    const sCost = this.privacyMode ? '••••••' : `${originalSym} ${tx.totalCost.toLocaleString()}`;
+                    const sQty = this.formatQuantity(tx.amount, "");
 
-                    tbody.innerHTML += `<tr class="border-b border-gray-800 hover:bg-gray-800/50"><td class="p-3 text-gray-400 text-xs">${new Date(tx.date).toLocaleDateString()}</td><td class="p-3 text-white font-bold text-xs flex items-center">${smallIcon} ${config.symbol}</td><td class="p-3"><span class="text-xs font-bold ${isBuy?'text-green-400':'text-red-400'}">${isBuy?'C':'V'}</span></td><td class="p-3 text-right text-gray-300 text-xs font-mono">${displayQty}</td><td class="p-3 text-right text-gray-300 text-xs">${displayCost}</td><td class="p-3 text-center"><button onclick="app.deleteTransaction(${tx.id})" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+                    tbody.innerHTML += `
+                    <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
+                        <td class="p-3 text-gray-400">${new Date(tx.date).toLocaleDateString()}</td>
+                        <td class="p-3 text-white font-bold text-xs flex items-center">${smallIcon} ${config.symbol}</td>
+                        <td class="p-3"><span class="text-xs font-bold ${isBuy?'text-green-400':'text-red-400'}">${isBuy?'C':'V'}</span></td>
+                        <td class="p-3 text-right text-gray-300 text-xs font-mono">${sQty}</td>
+                        <td class="p-3 text-right text-gray-300 text-xs">${sCost}</td>
+                        <td class="p-3 text-center"><button onclick="app.deleteTransaction(${tx.id})" class="text-gray-500 hover:text-red-500 p-1"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>`;
                 });
             }
-            
-            updateLineChart(ids, resultsData) {
-                const ctx = document.getElementById('historyChart').getContext('2d');
-                const refId = ids.find(id => resultsData[id]);
+
+            updateLineChart(ids) {
+                const canvas = document.getElementById('historyChart');
+                if(!canvas) return;
+                
+                const refId = ids.find(id => this.historyCache[`${id}_usd_365`]);
                 if(!refId) return;
-                const timestamps = resultsData[refId].map(p => p[0]);
+
+                const ctx = canvas.getContext('2d');
+                // Fatiar dados do cache 365 dias conforme a seleção atual (30, 90...)
+                const fullData = this.historyCache[`${refId}_usd_365`].data;
+                const slice = this.chartDays; 
+                const slicedRef = fullData.slice(-slice);
+                const timestamps = slicedRef.map(p => p[0]);
+                
+                const isBRL = this.displayCurrency === 'BRL';
+
+                // 1. Patrimônio
                 const totalValues = timestamps.map((ts, idx) => {
-                    const portfolioAtDate = this.getPortfolioAtDate(ts);
-                    let total = 0;
-                    ids.forEach(coinId => {
-                        if(resultsData[coinId] && portfolioAtDate[coinId]) {
-                            const p = resultsData[coinId][idx] ? resultsData[coinId][idx][1] : 0;
-                            total += p * portfolioAtDate[coinId];
+                    const port = this.getPortfolioAtDate(ts);
+                    let tot = 0;
+                    ids.forEach(id => {
+                        const key = `${id}_usd_365`;
+                        if(this.historyCache[key] && port[id]) {
+                            const coinData = this.historyCache[key].data.slice(-slice);
+                            if(coinData[idx]) {
+                                const pUsd = coinData[idx][1];
+                                const price = (isBRL && this.rateBrlToUsd > 0) ? pUsd / this.rateBrlToUsd : pUsd;
+                                tot += price * port[id];
+                            }
                         }
                     });
-                    return total;
+                    return tot;
                 });
-                const btcValues = resultsData['bitcoin'] ? resultsData['bitcoin'].map(p => p[1]) : [];
+
+                // 2. Preço BTC
+                const btcKey = `bitcoin_usd_365`;
+                const btcValues = this.historyCache[btcKey] ? this.historyCache[btcKey].data.slice(-slice).map(p => {
+                    return (isBRL && this.rateBrlToUsd > 0) ? p[1] / this.rateBrlToUsd : p[1];
+                }) : [];
+
+                // 3. Preço Médio Pessoal (Linha Constante - Piso)
+                const avgValues = timestamps.map(ts => {
+                    const pointDate = new Date(ts);
+                    pointDate.setHours(23, 59, 59); 
+
+                    let invested = 0;
+                    let qty = 0;
+                    
+                    const txsUntilDate = this.transactions
+                        .filter(t => t.coinId === 'bitcoin')
+                        .filter(t => {
+                            const parts = t.date.split('-');
+                            const txDate = new Date(parts[0], parts[1]-1, parts[2]);
+                            return txDate <= pointDate;
+                        })
+                        .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+                    txsUntilDate.forEach(t => {
+                        let cost = t.totalCost;
+                        const tBRL = (!t.currency || t.currency === 'BRL');
+                        if(tBRL !== isBRL && this.rateBrlToUsd > 0) {
+                            cost = tBRL ? cost * this.rateBrlToUsd : cost / this.rateBrlToUsd;
+                        }
+
+                        if(t.type === 'buy') { 
+                            invested += cost; 
+                            qty += t.amount; 
+                        } else { 
+                            const currentAvg = qty > 0 ? invested / qty : 0;
+                            invested -= currentAvg * t.amount; 
+                            qty -= t.amount; 
+                        }
+                    });
+
+                    return qty > 0.00000001 ? (invested / qty) : null;
+                });
+
                 if(this.lineChart) this.lineChart.destroy();
                 const gradient = ctx.createLinearGradient(0,0,0,400);
                 gradient.addColorStop(0, 'rgba(59,130,246,0.5)'); gradient.addColorStop(1, 'rgba(59,130,246,0.0)');
+
                 this.lineChart = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: timestamps.map(t => new Date(t).toLocaleDateString()),
-                        datasets: [{ label: 'Patrimônio', data: totalValues, borderColor: '#3b82f6', backgroundColor: gradient, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 6, yAxisID: 'y' }, { label: 'Bitcoin', data: btcValues, borderColor: '#f59e0b', borderDash: [3,3], borderWidth: 1.5, pointRadius: 0, fill: false, yAxisID: 'y1' }]
+                        datasets: [
+                            { label: 'Patrimônio', data: totalValues, borderColor: '#3b82f6', backgroundColor: gradient, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 6, yAxisID: 'y' },
+                            { label: 'Preço BTC', data: btcValues, borderColor: '#f59e0b', borderDash: [3,3], borderWidth: 1.5, pointRadius: 0, fill: false, yAxisID: 'y1' },
+                            { label: 'Meu Médio', data: avgValues, borderColor: '#d946ef', borderDash: [5,5], borderWidth: 2, pointRadius: 0, fill: false, spanGaps: true, yAxisID: 'y1' }
+                        ]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: {display:false}, tooltip: {mode: 'index', intersect: false} }, scales: { x: { display: false }, y: { type: 'linear', display: true, position: 'left', grid: {color:'#374151'}, ticks: {color:'#60a5fa', callback: v=>(v/1000).toFixed(0)+'k'} }, y1: { type: 'linear', display: true, position: 'right', grid: {drawOnChartArea:false}, ticks: {color:'#f59e0b', callback: v=>(v/1000).toFixed(0)+'k'} } } }
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, 
+                        plugins: { legend: {display:true, labels:{color:'#9ca3af', font:{size:10}}}, tooltip: {mode:'index', intersect:false} },
+                        scales: { x: {display:false}, y: {type:'linear', display:true, position:'left', grid:{color:'#374151'}, ticks: {color:'#60a5fa', callback: v=>(v/1000).toFixed(0)+'k'}}, y1: {type:'linear', display:true, position:'right', grid:{drawOnChartArea:false}, ticks: {color:'#f59e0b', callback: v=>(v/1000).toFixed(0)+'k'}} }
+                    }
                 });
             }
+
+            // --- UTILS ---
             getPortfolioAtDate(ts) {
                 const limit = new Date(ts); const coins = {};
                 this.transactions.forEach(tx => {
@@ -724,54 +934,173 @@
                 }); return coins;
             }
             
-            // Utilitários
-            getApiUrl(endpoint) {
-                let url = `https://api.coingecko.com/api/v3${endpoint}`;
-                if(this.apiConfig.type === 'key' && this.apiConfig.key) {
-                    const sep = url.includes('?') ? '&' : '?';
-                    url += `${sep}x_cg_demo_api_key=${this.apiConfig.key}`;
+            updateDonut(l, d, c) {
+                const cv = document.getElementById('portfolioChart');
+                const m = document.getElementById('emptyChartMsg');
+                if(!cv || typeof Chart === 'undefined') return;
+                if(this.donutChart) this.donutChart.destroy();
+                if(m) m.classList.toggle('hidden', d.length > 0);
+                this.donutChart = new Chart(cv.getContext('2d'), { type: 'doughnut', data: { labels: l, datasets: [{data: d, backgroundColor: c, borderWidth: 0}] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: {legend:{display:false}} } });
+            }
+
+            calculateMayer(prices) {
+                if(!prices || prices.length < 200) return;
+                const last200 = prices.slice(-200);
+                const sum = last200.reduce((acc, p) => acc + p[1], 0);
+                const ma200 = sum / 200;
+                const current = last200[last200.length-1][1];
+                const mayer = current / ma200;
+
+                const elVal = document.getElementById('mayerValue');
+                const elStat = document.getElementById('mayerStatus');
+                const elInd = document.getElementById('mayerIndicator');
+                
+                if(elVal) elVal.innerText = mayer.toFixed(2);
+                if(elInd) elInd.style.left = `${Math.min((mayer/3)*100, 100)}%`;
+                
+                if(elStat) {
+                    if(mayer < 0.55) { elStat.innerText = "Desconto"; elStat.className = "text-xs font-bold text-green-400"; }
+                    else if(mayer < 1.1) { elStat.innerText = "Acumulação"; elStat.className = "text-xs font-bold text-green-300"; }
+                    else if(mayer < 2.4) { elStat.innerText = "Bull Market"; elStat.className = "text-xs font-bold text-yellow-400"; }
+                    else { elStat.innerText = "Bolha"; elStat.className = "text-xs font-bold text-red-500"; }
                 }
-                return url;
+            }
+
+            // --- Handlers ---
+            setCurrency(c) { this.displayCurrency = c; localStorage.setItem('crypto_currency', c); this.updateCurrencyUI(); this.calculatePortfolio(); this.fetchHistory(); }
+            updateCurrencyUI() { 
+                const b1 = document.getElementById('btn-currency-brl'); const b2 = document.getElementById('btn-currency-usd'); 
+                const l = document.getElementById('costCurrencyLabel');
+                if(!b1) return;
+                if(this.displayCurrency === 'BRL') { 
+                    b1.classList.replace('text-gray-400','text-white'); b1.classList.add('bg-blue-600'); b2.classList.remove('bg-blue-600','text-white'); b2.classList.add('text-gray-400'); 
+                    if(l) l.innerText = 'R$';
+                }
+                else { 
+                    b2.classList.replace('text-gray-400','text-white'); b2.classList.add('bg-blue-600'); b1.classList.remove('bg-blue-600','text-white'); b1.classList.add('text-gray-400'); 
+                    if(l) l.innerText = 'USD';
+                }
+            }
+
+            changeRange(d) { 
+                this.chartDays = d; 
+                localStorage.setItem('crypto_chart_days', d); // PERSISTÊNCIA
+                this.updateRangeUI(); 
+                this.fetchHistory(); 
             }
             
-            toggleConsole() { document.getElementById('consoleModal').classList.toggle('hidden'); }
-            openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); }
-            closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
-            log(msg, type='info') { const b=document.getElementById('consoleBody'); const d=document.createElement('div'); d.className=`log-entry log-${type}`; d.innerText=`> ${msg}`; b.appendChild(d); b.scrollTop=b.scrollHeight; }
-            populateCoinSelect() { const sel = document.getElementById('coinSelect'); sel.innerHTML = ''; Object.entries(this.coinMap).forEach(([id, c]) => { const opt = document.createElement('option'); opt.value = id; opt.text = `${c.name} (${c.symbol})`; sel.appendChild(opt); }); }
-            
-            updateFormTheme() { 
-                const id = document.getElementById('coinSelect').value; 
-                const c = this.coinMap[id]; if(!c) return; 
-                const div = document.getElementById('formIconContainer'); 
-                div.innerHTML = this.getIconHtml(c);
-                document.getElementById('submitBtn').style.backgroundColor = c.color || '#d97706'; 
-                document.getElementById('formContainer').style.borderColor = c.color || '#d97706'; 
+            handleAddTransaction(e) { 
+                e.preventDefault(); 
+                const tx = { id: Date.now(), coinId: document.getElementById('coinSelect').value, type: document.getElementById('typeSelect').value, amount: parseFloat(document.getElementById('amountInput').value), totalCost: parseFloat(document.getElementById('costInput').value), currency: this.displayCurrency, date: document.getElementById('dateInput').value };
+                this.transactions.push(tx); localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); this.calculatePortfolio(); 
+                e.target.reset(); document.getElementById('dateInput').valueAsDate = new Date(); this.log('Transação adicionada.', 'success');
+                
+                // IMPORTANTE: Atualiza o gráfico
+                this.fetchHistory();
             }
-            updateApiStatusUI() { const el = document.getElementById('apiStatus'); if(this.apiConfig.key) el.innerHTML = '<span class="live-indicator warning"></span>API Pro'; else el.innerHTML = '<span class="live-indicator"></span>API Free'; }
             
-            // Save/Load
-            saveSettings(e) { e.preventDefault(); const t = document.querySelector('input[name="apiType"]:checked').value; const k = document.getElementById('apiKeyInput').value.trim(); this.apiConfig = {type:t, key:k}; localStorage.setItem('crypto_api_config', JSON.stringify(this.apiConfig)); this.updateApiStatusUI(); this.closeSettings(); this.log('Config salva.', 'success'); }
-            async smartSave() { const c = JSON.stringify({ transactions: this.transactions, customCoins: safeParse('crypto_custom_coins', {}), version: '1.4' }, null, 2); try { if('showSaveFilePicker' in window) { const h = await window.showSaveFilePicker({ suggestedName: `crypto_backup_${new Date().toISOString().split('T')[0]}.json`, types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] }); const w = await h.createWritable(); await w.write(c); await w.close(); alert('Salvo!'); } else { throw new Error('API N/A'); } } catch(e) { if(e.name !== 'AbortError') { const b = new Blob([c], {type: 'application/json'}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'crypto_backup.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); } } }
-            importData(input) { const f = input.files[0]; if(!f) return; const r = new FileReader(); r.onload = (e) => { try { const d = JSON.parse(e.target.result); if(confirm('Restaurar backup?')) { this.transactions = d.transactions; if(d.customCoins) { localStorage.setItem('crypto_custom_coins', JSON.stringify(d.customCoins)); this.coinMap = {...DEFAULT_COINS, ...d.customCoins}; } this.saveAndRender(); this.populateCoinSelect(); this.refreshAll(); alert('Restaurado!'); this.closeSettings(); } } catch(er) { alert('Erro arquivo'); } }; r.readAsText(f); input.value = ''; }
+            deleteTransaction(id) { 
+                if(confirm('Apagar?')) { 
+                    this.transactions = this.transactions.filter(t => t.id !== id); 
+                    localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); 
+                    this.calculatePortfolio(); 
+                    // IMPORTANTE: Atualiza o gráfico
+                    this.fetchHistory();
+                } 
+            }
             
-            generateExportCode() { const p = { transactions: this.transactions, customCoins: safeParse('crypto_custom_coins', {}), ts: Date.now() }; document.getElementById('exportCodeInput').value = btoa(JSON.stringify(p)); this.log('Código gerado.', 'success'); }
-            importFromCode() { const c = document.getElementById('importCodeInput').value.trim(); if(!c) return alert('Cole o código!'); try { const d = JSON.parse(atob(c)); if(confirm(`Restaurar ${d.transactions.length} transações?`)) { this.transactions = d.transactions; if(d.customCoins) { localStorage.setItem('crypto_custom_coins', JSON.stringify(d.customCoins)); this.coinMap = {...DEFAULT_COINS, ...data.customCoins}; } this.saveAndRender(); this.populateCoinSelect(); this.refreshAll(); alert('Sucesso!'); document.getElementById('settingsModal').classList.add('hidden'); } } catch(e) { alert('Código inválido.'); } }
+            clearAllData() { 
+                if(confirm('Resetar tudo?')) { 
+                    this.transactions = []; 
+                    localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); 
+                    this.calculatePortfolio(); 
+                    // IMPORTANTE: Atualiza o gráfico
+                    this.fetchHistory();
+                } 
+            }
             
-            handleAddTransaction(e) { e.preventDefault(); const tx = { id: Date.now(), coinId: document.getElementById('coinSelect').value, type: document.getElementById('typeSelect').value, amount: parseFloat(document.getElementById('amountInput').value), totalCost: parseFloat(document.getElementById('costInput').value), currency: this.displayCurrency, date: document.getElementById('dateInput').value }; this.transactions.push(tx); this.saveAndRender(); e.target.reset(); document.getElementById('dateInput').valueAsDate = new Date(); this.log('Transação add.', 'success'); this.refreshAll(); }
-            deleteTransaction(id) { if(confirm('Excluir?')) { this.transactions = this.transactions.filter(t => t.id !== id); this.saveAndRender(); this.refreshAll(); } }
-            clearAllData() { if(confirm('Apagar tudo?')) { this.transactions = []; this.saveAndRender(); this.refreshAll(); } }
-            saveAndRender() { localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); this.calculatePortfolio(); }
-            setCurrency(c) { this.displayCurrency = c; localStorage.setItem('crypto_currency', c); this.updateCurrencyUI(); this.refreshAll(); }
-            updateCurrencyUI() { const b1 = document.getElementById('btn-currency-brl'); const b2 = document.getElementById('btn-currency-usd'); const l = document.getElementById('costCurrencyLabel'); if (this.displayCurrency === 'BRL') { b1.classList.replace('text-gray-400', 'text-white'); b1.classList.add('bg-blue-600'); b2.classList.remove('bg-blue-600', 'text-white'); b2.classList.add('text-gray-400'); l.innerText = 'R$'; } else { b2.classList.replace('text-gray-400', 'text-white'); b2.classList.add('bg-blue-600'); b1.classList.remove('bg-blue-600', 'text-white'); b1.classList.add('text-gray-400'); l.innerText = 'USD'; } }
-            changeRange(d) { this.chartDays = d; this.fetchHistory(); }
+            forceClearCache() { localStorage.removeItem('crypto_prices_cache'); localStorage.removeItem('crypto_history_cache'); this.prices={}; this.refreshAll(true); }
             
-            // Search
-            async searchCoins() { const q = document.getElementById('coinSearchInput').value; const d = document.getElementById('searchResults'); if(q.length<2) return; d.innerHTML='<div class="text-center text-gray-500">...</div>'; try { const r = await fetch(this.getApiUrl(`/search?query=${q}`)); const j = await r.json(); d.innerHTML=''; j.coins.slice(0,10).forEach(c => { const e = document.createElement('div'); e.className = 'flex justify-between p-2 bg-gray-900/50 rounded mb-2 cursor-pointer hover:bg-gray-800 items-center'; e.innerHTML = `<div class="flex items-center"><img src="${c.thumb}" class="w-6 h-6 rounded-full mr-2"><span class="text-white text-sm font-bold">${c.name}</span></div><i class="fa-solid fa-plus text-blue-400"></i>`; e.onclick = () => { this.coinMap[c.id] = { symbol: c.symbol.toUpperCase(), name: c.name, color: '#9ca3af', image: c.thumb }; const cu = safeParse('crypto_custom_coins', {}); cu[c.id] = this.coinMap[c.id]; localStorage.setItem('crypto_custom_coins', JSON.stringify(cu)); this.populateCoinSelect(); document.getElementById('coinSelect').value = c.id; this.updateFormTheme(); document.getElementById('searchModal').classList.add('hidden'); this.log(`Moeda ${c.name} add.`, 'success'); this.refreshAll(); }; d.appendChild(e); }); } catch(e) { d.innerHTML='<div class="text-center text-red-400">Erro busca</div>'; } }
+            saveSettings(e) { e.preventDefault(); this.apiConfig = { type: document.querySelector('input[name="apiType"]:checked').value, key: document.getElementById('apiKeyInput').value.trim() }; localStorage.setItem('crypto_api_config', JSON.stringify(this.apiConfig)); this.closeSettings(); }
+            async smartSave() { const c = JSON.stringify({ transactions: this.transactions, customCoins: safeParse('crypto_custom_coins', {}), version: '1.4' }, null, 2); try { const h = await window.showSaveFilePicker({ suggestedName: 'backup.json', types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] }); const w = await h.createWritable(); await w.write(c); await w.close(); } catch(e) { console.log(e); } }
+            importData(input) { 
+                const f = input.files[0]; 
+                if(!f) return; 
+                const r = new FileReader(); 
+                r.onload = (e) => { 
+                    try { 
+                        const d = JSON.parse(e.target.result); 
+                        if(confirm(`Restaurar backup com ${d.transactions ? d.transactions.length : 0} transações?`)) { 
+                            // Atualiza transações
+                            if (d.transactions) {
+                                this.transactions = d.transactions;
+                                localStorage.setItem('crypto_txs', JSON.stringify(this.transactions));
+                            }
+                            // Atualiza moedas customizadas
+                            if(d.customCoins) {
+                                localStorage.setItem('crypto_custom_coins', JSON.stringify(d.customCoins));
+                            }
+                            alert('Dados restaurados com sucesso! O app será recarregado.');
+                            location.reload(); 
+                        } 
+                    } catch(er) { 
+                        console.error(er);
+                        alert('Erro ao ler o arquivo JSON. Verifique o formato.'); 
+                    } 
+                }; 
+                r.readAsText(f); 
+                input.value = ''; // Reset input
+            }
             
+            generateExportCode() { const p = { transactions: this.transactions, customCoins: safeParse('crypto_custom_coins', {}), ts: Date.now() }; document.getElementById('exportCodeInput').value = btoa(JSON.stringify(p)); }
+            
+            // Função Inteligente de Importação (Aceita Base64 ou JSON Puro)
+            importFromCode() { 
+                const raw = document.getElementById('importCodeInput').value.trim();
+                if (!raw) return alert('Cole algo!');
+
+                try { 
+                    let jsonStr = raw;
+                    // Tenta decodificar se não começar com {
+                    if (!raw.startsWith('{')) {
+                        try { jsonStr = atob(raw); } catch(e) { console.warn("Não é base64, tentando JSON direto"); }
+                    }
+                    
+                    const d = JSON.parse(jsonStr); 
+                    if(confirm('Restaurar?')) { 
+                        this.transactions = d.transactions || []; 
+                        localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); 
+                        if(d.customCoins) localStorage.setItem('crypto_custom_coins', JSON.stringify(d.customCoins)); 
+                        location.reload(); 
+                    } 
+                } catch(e) { 
+                    alert('Código inválido ou corrompido.'); 
+                } 
+            }
+            
+            async searchCoins() { 
+                const q = document.getElementById('coinSearchInput').value; const d = document.getElementById('searchResults'); 
+                if(q.length<2 || !d) return; d.innerHTML='...'; 
+                try { const r = await fetch(this.getApiUrl(`/search?query=${q}`)); const j = await r.json(); d.innerHTML=''; 
+                    j.coins.slice(0,10).forEach(c => { 
+                        const e = document.createElement('div'); e.className = 'flex justify-between p-2 bg-gray-900/50 rounded mb-2 cursor-pointer hover:bg-gray-800 items-center'; 
+                        e.innerHTML = `<span class="text-white font-bold">${c.name}</span><i class="fa-solid fa-plus text-blue-400"></i>`; 
+                        e.onclick = () => { 
+                            this.coinMap[c.id] = { symbol: c.symbol.toUpperCase(), name: c.name, color: '#9ca3af', image: c.thumb }; 
+                            const cu = safeParse('crypto_custom_coins', {}); cu[c.id] = this.coinMap[c.id]; localStorage.setItem('crypto_custom_coins', JSON.stringify(cu)); 
+                            this.populateCoinSelect(); document.getElementById('coinSelect').value = c.id; this.updateFormTheme(); 
+                            document.getElementById('searchModal').classList.add('hidden'); this.refreshAll(true); 
+                        }; d.appendChild(e); 
+                    }); 
+                } catch(e) { d.innerHTML='Erro'; } 
+            }
+            
+            copyDonationAddress() { navigator.clipboard.writeText("Bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0"); alert("Bitcoin Address Copied!"); }
+            copyLightningAddress() { navigator.clipboard.writeText("arthurmiguel@bipa.app"); alert("Lightning Address Copied!"); }
+
             runSimulation() {
-                const t = parseFloat(document.getElementById('simPriceInput').value); if (!t) return alert('Digite valor!');
-                const btc = this.prices.bitcoin ? this.prices.bitcoin.usd : 0; if (btc === 0) return alert('Aguarde API.');
+                const t = parseFloat(document.getElementById('simPriceInput').value); if (!t) return alert('Valor inválido');
+                const btc = this.prices.bitcoin ? this.prices.bitcoin.usd : 0; if (btc === 0) return alert('Aguarde dados...');
                 const g = t / btc; let proj = 0;
                 Object.keys(this.coinMap).forEach(id => {
                     const qty = this.transactions.filter(tx => tx.coinId === id).reduce((acc, tx) => tx.type === 'buy' ? acc + tx.amount : acc - tx.amount, 0);
@@ -780,7 +1109,6 @@
                 if (this.displayCurrency === 'BRL' && this.rateBrlToUsd > 0) proj = proj / this.rateBrlToUsd;
                 const sym = this.displayCurrency === 'BRL' ? 'R$' : '$';
                 document.getElementById('simResult').classList.remove('hidden');
-                // Formatação com privacidade também
                 const displayProj = this.privacyMode ? '••••••' : `${sym} ${proj.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
                 document.getElementById('simTotalValue').innerText = displayProj;
                 document.getElementById('simProfit').innerText = `Crescimento: ${(g*100-100).toFixed(1)}%`;
@@ -790,5 +1118,4 @@
         const app = new CryptoApp();
     </script>
 </body>
-
 </html>

@@ -1,0 +1,115 @@
+{
+  "version": "1.4",
+  "customCoins": {
+    "polkadot": {
+      "symbol": "DOT",
+      "name": "Polkadot",
+      "color": "#e6007a",
+      "image": "https://assets.coingecko.com/coins/images/12171/small/polkadot.png"
+    },
+    "dogecoin": {
+      "symbol": "DOGE",
+      "name": "Dogecoin",
+      "color": "#cb9800",
+      "image": "https://assets.coingecko.com/coins/images/5/small/dogecoin.png"
+    },
+    "chainlink": {
+      "symbol": "LINK",
+      "name": "Chainlink",
+      "color": "#2a5ada",
+      "image": "https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png"
+    }
+  },
+  "transactions": [
+    {
+      "id": 1704422400000,
+      "coinId": "bitcoin",
+      "type": "buy",
+      "amount": 0.05,
+      "totalCost": 10500,
+      "currency": "BRL",
+      "date": "2024-01-05"
+    },
+    {
+      "id": 1707955200000,
+      "coinId": "solana",
+      "type": "buy",
+      "amount": 45,
+      "totalCost": 22000,
+      "currency": "BRL",
+      "date": "2024-02-15"
+    },
+    {
+      "id": 1710979200000,
+      "coinId": "ethereum",
+      "type": "buy",
+      "amount": 2.1,
+      "totalCost": 35000,
+      "currency": "BRL",
+      "date": "2024-03-21"
+    },
+    {
+      "id": 1716163200000,
+      "coinId": "dogecoin",
+      "type": "buy",
+      "amount": 15000,
+      "totalCost": 12000,
+      "currency": "BRL",
+      "date": "2024-05-20"
+    },
+    {
+      "id": 1718841600000,
+      "coinId": "bitcoin",
+      "type": "sell",
+      "amount": 0.01,
+      "totalCost": 3800,
+      "currency": "BRL",
+      "date": "2024-06-20"
+    },
+    {
+      "id": 1724112000000,
+      "coinId": "polkadot",
+      "type": "buy",
+      "amount": 300,
+      "totalCost": 9500,
+      "currency": "BRL",
+      "date": "2024-08-20"
+    },
+    {
+      "id": 1729382400000,
+      "coinId": "solana",
+      "type": "sell",
+      "amount": 15,
+      "totalCost": 14000,
+      "currency": "BRL",
+      "date": "2024-10-20"
+    },
+    {
+      "id": 1732060800000,
+      "coinId": "chainlink",
+      "type": "buy",
+      "amount": 80,
+      "totalCost": 6500,
+      "currency": "BRL",
+      "date": "2024-11-20"
+    },
+    {
+      "id": 1737331200000,
+      "coinId": "bitcoin",
+      "type": "buy",
+      "amount": 0.025,
+      "totalCost": 8500,
+      "currency": "BRL",
+      "date": "2025-01-20"
+    },
+    {
+      "id": 1742342400000,
+      "coinId": "ethereum",
+      "type": "sell",
+      "amount": 0.5,
+      "totalCost": 12000,
+      "currency": "BRL",
+      "date": "2025-03-20"
+    }
+  ]
+}

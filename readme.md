@@ -42,6 +42,37 @@ Veja quanto seu patrimônio valeria se o Bitcoin atingisse **$100k, $200k, $300k
 
 ---
 
+---
+
+## 🆕 Atualização 2.0
+
+### 🚀 Crypto Control v2.0
+
+Esta atualização foca em estabilidade total, novas métricas de análise e integração com a rede Lightning.
+
+### ✨ Novidades
+
+- ⚡ **Doações em Sats (Lightning):** Agora é possível copiar o endereço ou gerar um QR Code dinâmico para enviar Sats via Lightning Network instantaneamente.
+
+- 📈 **Mayer Multiple:** Adicionado um novo card que calcula o múltiplo de Mayer do Bitcoin em tempo real, indicando se o preço está historicamente "barato" ou "caro".
+
+- 🟣 **Linha de Preço Médio:** O gráfico de histórico agora exibe uma linha roxa pontilhada que mostra o seu Custo Médio Pessoal de compra ao longo do tempo, facilitando a visualização do lucro real.
+
+### ⚙️ Performance & Otimização
+
+- **Smart Queue (Fila Inteligente):** O app agora atualiza as moedas uma por uma (a cada 15s) com uma barra de progresso visual — eliminando erros 429 da API.
+
+- **Cache Persistente:** O histórico de gráficos é salvo no navegador, tornando o carregamento instantâneo em visitas futuras.
+
+- **Blindagem de UI:** Correção definitiva de travamentos e "tela branca" ao iniciar o app.
+
+---
+
+**Como atualizar:**  
+Apenas substitua o arquivo `index.html` pela nova versão. Seus dados salvos serão mantidos automaticamente.
+
+---
+
 ## 🛠️ Como Instalar (Desenvolvedores)
 
 Clone este repositório:
