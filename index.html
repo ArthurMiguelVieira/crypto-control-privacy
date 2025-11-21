@@ -605,25 +605,12 @@
                     return;
                 }
                 try {
-                    const res = await fetch('./bitcoin.xlsx');
-                    if (!res.ok) {
-                        // If .xlsx fails, try .csv as a fallback
-                        const resCsv = await fetch('./bitcoin.csv');
-                        if (!resCsv.ok) return; // if both fail, just return
-                        const text = await resCsv.text();
-                        this.processCsvData(text); // This one has its own logging, no alerts
-                        this.log('Base de dados local (bitcoin.csv) carregada.', 'success');
-                        return;
-                    };
-                    const data = await res.arrayBuffer();
-                    const workbook = XLSX.read(new Uint8Array(data), {type: 'array'});
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                    this.processData(jsonData, true); // Pass true for silent
-                    this.log('Base de dados local (bitcoin.xlsx) carregada.', 'success');
+                    const res = await fetch('./bitcoin.csv');
+                    if (!res.ok) return;
+                    const text = await res.text();
+                    this.processCsvData(text); // Agora usa o processador inteligente
                 } catch (e) {
-                    this.log('Nenhum arquivo de base de dados local encontrado (' + e.message + ')', 'warn');
+                    // Silencioso
                 }
             }
 
@@ -678,7 +665,7 @@
                 input.value = '';
             }
 
-            processData(rows, silent = false) {
+            processData(rows) {
                 let count = 0;
                 
                 // Ignora cabeçalho (linha 0)
@@ -718,9 +705,8 @@
                     localStorage.setItem('crypto_local_history', JSON.stringify(this.localData));
                     this.showDateRange(); // Atualiza a UI com as datas
                     this.log(`Importado: ${count} datas de BTC.`, 'success');
-                    if (!silent) alert('Base de dados carregada com sucesso!');
                 } else {
-                    if (!silent) alert('Nenhum dado válido encontrado. Verifique as colunas (Timestamp na 1ª, PriceClose na 8ª).');
+                    alert('Nenhum dado válido encontrado. Verifique as colunas (Timestamp na 1ª, PriceClose na 8ª).');
                 }
             }
             
