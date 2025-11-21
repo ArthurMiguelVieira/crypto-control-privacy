@@ -1,7 +1,6 @@
 # 🛡️ Crypto Control — Rastreador de Portfólio 100% Seguro
 
-<img width="1057" height="980" alt="new att" src="https://github.com/user-attachments/assets/7b58d4e0-9b41-4566-b6e7-2f7aa03ca4ab" />
-
+<img width="1195" height="848" alt="image" src="https://github.com/user-attachments/assets/a19fbdfe-9d57-4a64-87c8-1fb9c4661df9" />
 
 > **"Acompanhe os seus lucros, não a sua privacidade."**
 
@@ -41,36 +40,17 @@ Veja quanto seu patrimônio valeria se o Bitcoin atingisse **$100k, $200k, $300k
 - **📊 Gráficos Interativos** comparando evolução do seu patrimônio vs. Bitcoin.
 - **🧼 Zero Backend** — 100% HTML, CSS e JavaScript puro.
 
----
+### 🌟 Notas de Atualização (21/11/2025)
 
----
+Esta atualização traz melhorias significativas na usabilidade e controle das suas transações:
 
-## 🆕 Atualização 2.0
-
-### 🚀 Crypto Control v2.0
-
-Esta atualização foca em estabilidade total, novas métricas de análise e integração com a rede Lightning.
-
-### ✨ Novidades
-
-- ⚡ **Doações em Sats (Lightning):** Agora é possível copiar o endereço ou gerar um QR Code dinâmico para enviar Sats via Lightning Network instantaneamente.
-
-- 📈 **Mayer Multiple:** Adicionado um novo card que calcula o múltiplo de Mayer do Bitcoin em tempo real, indicando se o preço está historicamente "barato" ou "caro".
-
-- 🟣 **Linha de Preço Médio:** O gráfico de histórico agora exibe uma linha roxa pontilhada que mostra o seu Custo Médio Pessoal de compra ao longo do tempo, facilitando a visualização do lucro real.
-
-### ⚙️ Performance & Otimização
-
-- **Smart Queue (Fila Inteligente):** O app agora atualiza as moedas uma por uma (a cada 15s) com uma barra de progresso visual — eliminando erros 429 da API.
-
-- **Cache Persistente:** O histórico de gráficos é salvo no navegador, tornando o carregamento instantâneo em visitas futuras.
-
-- **Blindagem de UI:** Correção definitiva de travamentos e "tela branca" ao iniciar o app.
-
----
-
-**Como atualizar:**  
-Apenas substitua o arquivo `index.html` pela nova versão. Seus dados salvos serão mantidos automaticamente.
+*   **Exportação de Transações para CSV:** Agora você pode exportar todo o seu histórico de transações para um arquivo CSV, compatível com planilhas como o LibreOffice Calc ou Microsoft Excel, facilitando a análise e o backup externo dos seus dados.
+*   **Edição Individual de Transações:** Adicionada a funcionalidade de editar transações diretamente na lista. Chega de excluir e recriar! Agora, com um clique, você pode corrigir rapidamente qualquer erro em suas operações.
+*   **Base de Dados Offline para BTC (Histórico):** Introduzido um recurso para carregar uma base de dados offline (via arquivo XLSX/CSV) com o histórico de preços do Bitcoin. Isso permite que você trabalhe com dados históricos personalizados para o BTC, com detecção automática do período coberto. Um link de exemplo para download de dados históricos da Bitget foi adicionado no modal de Ajustes.
+*   **Melhorias no Modal de Ajuda:**
+    *   Renomeada a seção "Funcionalidades" para "Funcionalidades Principais" para maior clareza.
+    *   A descrição da funcionalidade "Sincronizar Dados" foi expandida para explicar que ela força uma nova busca de dados na API.
+    *   Adicionada uma nova seção "Bugs Comuns (API Gratuita)" para informar sobre possíveis lentidões ou atrasos na atualização ao usar a API gratuita.
 
 ---
 
@@ -105,16 +85,8 @@ Se o app te ajudou a organizar seus investimentos, considere apoiar:
 **BTC:**  
 `bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0`
 
-**SATS**
-<p align="center">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=mailto:arthurmiguel@bipa.app" alt="QR Code Email" />
-</p>
-
-
 ---
 
 👤 Desenvolvido por Arthur Miguel
-
-
 
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crypto Control V2</title>
+    <title>Crypto Control</title>
     
     <meta name="theme-color" content="#111827">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,6 +14,8 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Biblioteca Poderosa para ler Excel (XLSX) e CSV -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -55,13 +57,29 @@
         
         /* Botão Range Ativo */
         .range-btn.active { background-color: #374151; color: #fff; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* NOVO: Estilos Smart Add */
+        .smart-price-box { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 0.5rem; padding: 0.5rem; }
+        
+        /* Estilo Unificado do Resumo */
+        .summary-box {
+            background: #1f2937; /* gray-800 */
+            border: 1px solid #374151; /* gray-700 */
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+        .summary-divider { border-top: 1px dashed #4b5563; margin: 0.5rem 0; }
+        
+        .date-range-badge { display: inline-block; background: rgba(16, 185, 129, 0.1); color: #34d399; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-top: 4px; border: 1px solid rgba(16, 185, 129, 0.2); }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col relative select-none">
 
     <div id="topProgressBarContainer"><div id="topProgressBar"></div></div>
 
-    <!-- 1. Modal Ajuda -->
     <div id="helpModal" class="fixed inset-0 bg-black/90 hidden z-[140] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-0 rounded-xl w-full max-w-md shadow-2xl relative overflow-hidden">
             <div class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
@@ -76,17 +94,23 @@
                         <p class="text-[11px] mt-1 leading-tight">Seus dados são salvos <strong>somente neste dispositivo</strong>. Não há nuvem. Se limpar o cache, os dados somem. Faça backups!</p>
                     </div>
                 </div>
-                <h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-700 pb-1">Funcionalidades</h3>
+                <h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-700 pb-1">Funcionalidades Principais</h3>
                 <ul class="space-y-2 list-disc pl-4 text-xs">
                     <li><strong>Olho (<i class="fa-solid fa-eye"></i>):</strong> Oculta saldos.</li>
-                    <li><strong>Sincronizar:</strong> Use para transferir dados.</li>
-                    <li><strong>Cache Inteligente:</strong> Baixa 1 ano de histórico e reutiliza. Trocar datas é instantâneo.</li>
+                    <li><strong>Sincronizar Dados (<i class='fa-solid fa-sync'></i>):</strong> Força uma nova busca de todos os dados (preços e histórico) da API.</li>
+                    <li><strong>Simulador (<i class="fa-solid fa-wand-magic-sparkles"></i>):</strong> Simula o valor do seu portfólio com base em um preço futuro do Bitcoin.</li>
+                    <li><strong>Console (<i class="fa-solid fa-terminal"></i>):</strong> Exibe logs e o status das operações em segundo plano.</li>
+                    <li><strong>Ajustes (<i class="fa-solid fa-gear"></i>):</strong> Permite carregar backups, bases de dados offline, configurar a API e mais.</li>
+                </ul>
+                <h3 class="text-xs font-bold text-gray-400 uppercase border-b border-gray-700 pb-1 mt-4">Bugs Comuns (API Gratuita)</h3>
+                <ul class="space-y-2 list-disc pl-4 text-xs">
+                    <li><strong>Lentidão:</strong> Com muitas moedas no portfólio, a API gratuita pode ficar lenta.</li>
+                    <li><strong>Atraso nas Atualizações:</strong> A API gratuita pode ter atrasos na atualização dos preços e dados históricos.</li>
                 </ul>
             </div>
         </div>
     </div>
 
-    <!-- 2. Modal Simulador -->
     <div id="simulatorModal" class="fixed inset-0 bg-black/90 hidden z-[135] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-6 rounded-xl w-full max-w-sm shadow-2xl relative">
             <button onclick="document.getElementById('simulatorModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
@@ -104,7 +128,6 @@
         </div>
     </div>
 
-    <!-- 3. Modal Configurações -->
     <div id="settingsModal" class="fixed inset-0 bg-black/90 hidden z-[130] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-0 rounded-xl w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
@@ -112,8 +135,24 @@
                 <button onclick="app.closeSettings()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
             </div>
             <div class="p-5 space-y-6">
+                
+                <!-- Seção de Importação CSV/Excel -->
                 <div>
-                    <h3 class="text-[10px] font-bold text-green-500 uppercase mb-2 border-b border-gray-700 pb-1">Backup</h3>
+                    <h3 class="text-[10px] font-bold text-orange-500 uppercase mb-2 border-b border-gray-700 pb-1">Base de Dados Offline (BTC)</h3>
+                    <p class="text-[10px] text-gray-400 mb-2">Carregue seu arquivo .xlsx ou .csv (Preços em Dólar).</p>
+                    <p class="text-[10px] text-gray-500 mb-2">Exemplo de dados esperados: <a href="https://www.bitget.com/pt/price/bitcoin/historical-data?#download" target="_blank" class="text-blue-400 hover:underline">Bitget Historical Data</a></p>
+                    <div class="flex gap-2">
+                        <button onclick="document.getElementById('csvHistoryInput').click()" class="w-full py-2 bg-orange-600 hover:bg-orange-500 rounded text-xs text-white font-bold flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-excel"></i> Carregar Base (.xlsx/.csv)
+                        </button>
+                        <input type="file" id="csvHistoryInput" accept=".csv, .xlsx, .xls" class="hidden" onchange="app.importHistoryFile(this)">
+                    </div>
+                    <div id="csvStatus" class="text-[10px] text-gray-500 mt-2 text-center">Nenhum arquivo carregado</div>
+                    <div id="csvDateRange" class="hidden text-center mt-1"></div>
+                </div>
+
+                <div>
+                    <h3 class="text-[10px] font-bold text-green-500 uppercase mb-2 border-b border-gray-700 pb-1">Backup Carteira</h3>
                     <div class="flex gap-2">
                         <button onclick="app.smartSave()" class="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white font-bold">Salvar</button>
                         <button onclick="document.getElementById('importFile').click()" class="flex-1 py-2 border border-gray-600 hover:bg-gray-700 rounded text-xs text-gray-300">Ler</button>
@@ -150,7 +189,6 @@
         </div>
     </div>
 
-    <!-- 4. Busca -->
     <div id="searchModal" class="fixed inset-0 bg-black/90 hidden z-[120] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-6 rounded-xl w-full max-w-md shadow-2xl relative">
             <button onclick="document.getElementById('searchModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-500 hover:text-white"><i class="fa-solid fa-times"></i></button>
@@ -163,7 +201,6 @@
         </div>
     </div>
 
-    <!-- 5. Console -->
     <div id="consoleModal" class="fixed inset-0 bg-black/80 hidden z-[160] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="glass-panel p-0 rounded-xl w-full max-w-2xl h-[400px] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-gray-800 p-3 flex justify-between items-center border-b border-gray-700">
@@ -178,7 +215,67 @@
         </div>
     </div>
 
-    <!-- NAVBAR -->
+    <!-- MODAL DE EDIÇÃO DE TRANSAÇÃO -->
+    <div id="editTxModal" class="fixed inset-0 bg-black/90 hidden z-[150] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="glass-panel p-0 rounded-xl w-full max-w-md shadow-2xl relative overflow-hidden">
+            <div class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-pencil text-yellow-400 mr-2"></i> Editar Transação</h2>
+                <button onclick="app.closeEditModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="p-5">
+                <form id="editTxForm" class="space-y-3">
+                    <input type="hidden" id="editTxId">
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Moeda</label>
+                            <select id="editCoinSelect" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white outline-none focus:border-yellow-500"></select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Ação</label>
+                            <select id="editTypeSelect" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white outline-none focus:border-yellow-500">
+                                <option value="buy">Comprar</option>
+                                <option value="sell">Vender</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Qtd</label>
+                            <input type="number" step="any" id="editAmountInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Preço Unitário</label>
+                            <input type="number" step="any" id="editCostInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="Preço de 1 moeda">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] text-gray-400 block mb-1">Data</label>
+                        <input type="date" id="editDateInput" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white">
+                    </div>
+
+                    <div class="border-t border-gray-700 pt-3 mt-3">
+                         <label class="text-[10px] font-bold text-purple-400 uppercase">Taxas (%)</label>
+                        <div class="grid grid-cols-2 gap-3 mt-2">
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-1">Taxa Compra</label>
+                                <input type="number" step="0.01" min="0" id="editTaxBuyInput" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-1">Taxa Venda</label>
+                                <input type="number" step="0.01" min="0" id="editTaxSellInput" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded text-xs shadow-lg transform active:scale-95 transition mt-4">SALVAR ALTERAÇÕES</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <nav class="bg-gray-800/90 backdrop-blur-md border-b border-gray-700 p-3 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-2">
@@ -189,14 +286,20 @@
             </div>
             
             <div class="flex items-center space-x-2">
-                <!-- Status da API + Timer de Cooldown -->
                 <div id="apiStatus" class="flex items-center bg-black/40 px-2 py-1 rounded border border-gray-700/50 text-[10px] mr-1 min-w-[70px] justify-center transition-all">
                     <span class="live-indicator"></span> <span class="text-gray-400 font-mono">...</span>
                 </div>
 
+                <!-- MOEDA FIAT (BRL/USD) -->
                 <div class="flex bg-gray-900 rounded p-0.5 border border-gray-700">
                     <button onclick="app.setCurrency('BRL')" id="btn-currency-brl" class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-600 text-white transition">BRL</button>
                     <button onclick="app.setCurrency('USD')" id="btn-currency-usd" class="px-2 py-0.5 text-[10px] font-bold rounded text-gray-400 hover:text-white transition">USD</button>
+                </div>
+
+                <!-- UNIDADE BTC (BTC/SATS) -->
+                <div class="flex bg-gray-900 rounded p-0.5 border border-gray-700">
+                    <button onclick="app.setUnit('BTC')" id="btn-unit-btc" class="px-2 py-0.5 text-[10px] font-bold rounded bg-orange-500 text-white transition">BTC</button>
+                    <button onclick="app.setUnit('SATS')" id="btn-unit-sats" class="px-2 py-0.5 text-[10px] font-bold rounded text-gray-400 hover:text-white transition">SATS</button>
                 </div>
                 
                 <button onclick="document.getElementById('simulatorModal').classList.remove('hidden')" class="p-1.5 text-yellow-400 hover:bg-gray-700 rounded transition"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
@@ -208,12 +311,9 @@
         </div>
     </nav>
 
-    <!-- MAIN CONTENT -->
     <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Left Column -->
         <div class="lg:col-span-1 space-y-6">
-            <!-- Resumo -->
             <div class="glass-panel rounded-xl p-6 shadow-lg relative overflow-hidden group">
                 <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition"><i class="fa-solid fa-wallet text-6xl text-white"></i></div>
                 
@@ -231,7 +331,6 @@
                 </div>
             </div>
 
-            <!-- Mayer Multiple Card (NOVO) -->
             <div class="glass-panel rounded-xl p-4 shadow-lg relative overflow-hidden">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-xs font-bold text-gray-400 uppercase">Mayer Multiple (BTC)</h3>
@@ -241,7 +340,6 @@
                     <div class="text-2xl font-bold text-white" id="mayerValue">---</div>
                     <div class="text-xs text-gray-400 mb-1" id="mayerStatus">Carregando...</div>
                 </div>
-                <!-- Progress Bar Visual for Mayer -->
                 <div class="w-full bg-gray-800 h-2 mt-2 rounded-full overflow-hidden relative">
                     <div class="absolute top-0 left-0 h-full w-1/3 bg-green-500/30"></div>
                     <div class="absolute top-0 left-1/3 h-full w-1/3 bg-yellow-500/30"></div>
@@ -250,14 +348,12 @@
                 </div>
             </div>
 
-            <!-- Pizza -->
             <div class="glass-panel rounded-xl p-4 shadow-lg flex flex-col items-center justify-center h-56 relative">
                 <h3 class="text-xs font-bold text-gray-400 w-full text-left mb-2">Alocação</h3>
                 <canvas id="portfolioChart"></canvas>
                 <div id="emptyChartMsg" class="hidden text-gray-500 text-xs absolute">Carteira Vazia</div>
             </div>
 
-            <!-- Form -->
             <div id="formContainer" class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-sm font-bold text-white flex items-center">
@@ -279,27 +375,74 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Qtd</label>
-                            <input type="number" step="0.00000001" id="amountInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
+                            <label class="text-[10px] text-gray-400 block mb-1">Qtd <span id="qtyUnitLabel" class="text-orange-500 font-bold text-[9px]">(BTC)</span></label>
+                            <input type="number" step="0.00000001" id="amountInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00" oninput="app.calculateBreakEven()">
                         </div>
                         <div>
-                            <!-- Label Dinâmico: Total (R$) ou Total (USD) -->
-                            <label class="text-[10px] text-gray-400 block mb-1">Total (<span id="costCurrencyLabel">R$</span>)</label>
-                            <input type="number" step="0.01" id="costInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00">
+                            <label class="text-[10px] text-gray-400 block mb-1">Preço Unitário (<span id="costCurrencyLabel">R$</span>)</label>
+                            <input type="number" step="0.01" id="costInput" required class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="Preço de 1 moeda" oninput="app.calculateBreakEven()">
                         </div>
                     </div>
-                    <div>
-                        <label class="text-[10px] text-gray-400 block mb-1">Data</label>
-                        <input type="date" id="dateInput" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white">
+                    
+                    <!-- NOVO: PAINEL DE RESUMO UNIFICADO -->
+                    <div id="calculationSummary" class="hidden bg-gray-800/50 border border-gray-700 rounded-lg p-3 mt-3 mb-3">
+                        <!-- Linha 1: Total Gasto -->
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] text-gray-400 uppercase tracking-wider">Total Gasto</span>
+                            <span class="text-sm font-bold text-white font-mono" id="calcTotalValue">...</span>
+                        </div>
+                        <!-- Linha 2: Break-even (Sempre visível dentro do box) -->
+                        <div class="flex justify-between items-center pt-2 border-t border-gray-700/50">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] text-purple-400 font-bold uppercase tracking-wider">Break-even</span>
+                                <span class="text-[9px] text-gray-500" id="calcBreakEvenMsg">Venda acima de...</span>
+                            </div>
+                            <span class="text-sm font-bold text-purple-300 font-mono" id="calcBreakEvenValue">...</span>
+                        </div>
                     </div>
+                    
+                    <div>
+                        <label class="text-[10px] text-gray-400 block mb-1">Data <span class="text-blue-300 text-[9px]">(data antiga = busca preço unitário)</span></label>
+                        <div class="flex gap-2">
+                            <input type="date" id="dateInput" class="flex-1 bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" onchange="app.smartFetchPrice()">
+                            <button type="button" onclick="app.smartFetchPrice()" class="bg-blue-600 hover:bg-blue-500 px-2 rounded text-white text-xs font-bold"><i class="fa-solid fa-sync"></i></button>
+                        </div>
+                        <div id="smartPriceInfo" class="smart-price-box text-xs text-blue-300 mt-2 hidden">
+                            <i class="fa-solid fa-info-circle mr-1"></i> <span id="smartPriceText">Carregando preço...</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-700 pt-3 mt-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-[10px] font-bold text-purple-400 uppercase">Taxas (%)</label>
+                            <button type="button" onclick="document.getElementById('taxesHelp').classList.toggle('hidden')" class="text-gray-500 hover:text-purple-400 text-xs">
+                                <i class="fa-solid fa-circle-question"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="taxesHelp" class="hidden bg-purple-500/10 border border-purple-500/30 rounded p-2 mb-2 text-[10px] text-gray-300">
+                            <p><strong>Taxa de Compra:</strong> Taxa sobre valor total (exchange, saque, etc)</p>
+                            <p><strong>Taxa de Venda:</strong> Taxa na saída para cálculo do break-even</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-1">Taxa Compra</label>
+                                <input type="number" step="0.01" min="0" id="taxBuyInput" value="0" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00" onchange="app.calculateBreakEven()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-1">Taxa Venda</label>
+                                <input type="number" step="0.01" min="0" id="taxSellInput" value="0" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-white" placeholder="0.00" onchange="app.calculateBreakEven()">
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-xs shadow-lg transform active:scale-95 transition">ADICIONAR</button>
                 </form>
             </div>
         </div>
 
-        <!-- Right Column -->
         <div class="lg:col-span-2 space-y-6">
-            <!-- Line Chart -->
             <div class="glass-panel rounded-xl p-4 shadow-lg border border-gray-700">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-xs font-bold text-gray-400">Histórico</h3>
@@ -313,19 +456,22 @@
                 <div class="w-full h-56 relative"><canvas id="historyChart"></canvas></div>
             </div>
 
-            <!-- Assets Grid -->
             <div id="assetsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 
-            <!-- Table -->
             <div class="glass-panel rounded-xl border border-gray-700 overflow-hidden">
                 <div class="bg-gray-800/50 p-3 border-b border-gray-700 flex justify-between items-center">
                     <h3 class="text-xs font-bold text-gray-400">Últimas Transações</h3>
-                    <button onclick="app.clearAllData()" class="text-[10px] text-red-400 hover:text-red-300">Limpar Tudo</button>
+                    <div class="flex items-center gap-4">
+                        <button onclick="app.exportToCsv()" class="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                            <i class="fa-solid fa-file-export"></i> Exportar
+                        </button>
+                        <button onclick="app.clearAllData()" class="text-[10px] text-red-400 hover:text-red-300">Limpar Tudo</button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto max-h-60">
                     <table class="w-full text-left text-xs">
                         <thead class="bg-gray-900 text-gray-500 font-normal">
-                            <tr><th class="p-3 font-normal">Data</th><th class="p-3 font-normal">Ativo</th><th class="p-3 font-normal">Tipo</th><th class="p-3 text-right font-normal">Qtd</th><th class="p-3 text-right font-normal">Valor</th><th class="p-3"></th></tr>
+                            <tr><th class="p-3 font-normal">Data</th><th class="p-3 font-normal">Ativo</th><th class="p-3 font-normal">Tipo</th><th class="p-3 text-right font-normal">Qtd</th><th class="p-3 text-right font-normal">Valor</th><th class="p-3 text-right font-normal">B.E.</th><th class="p-3"></th></tr>
                         </thead>
                         <tbody id="historyTableBody" class="divide-y divide-gray-800"></tbody>
                     </table>
@@ -337,7 +483,7 @@
     <footer class="border-t border-gray-800 mt-6 py-8 text-center bg-gray-900/90 backdrop-blur-md">
         <p class="text-gray-500 text-sm font-mono mb-4">By Arthur Miguel</p>
         <div class="inline-block bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 max-w-sm mx-auto">
-            <p class="text-xs text-gray-400 mb-2 px-2"><i class="fa-solid fa-heart text-red-500 mr-2"></i>Se este projeto te ajudou, considere apoiar com um café ☕</p>
+        <p class="text-xs text-gray-400 mb-2 px-2"><i class="fa-solid fa-heart text-red-500 mr-2"></i>Se este projeto te ajudou, considere apoiar com um café ☕</p>
             <div class="mb-2 bg-white p-2 rounded-lg inline-block">
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=lightning:arthurmiguel@bipa.app" alt="QR" class="w-32 h-32">
             </div>
@@ -358,7 +504,7 @@
         const ICONS = {
             BTC: '<path d="M17.05,10.28C16.5,8.11 14.75,6.4 12.31,5.88V3.38H9.81V5.88H8.31V3.38H5.81V5.92H2.31V8.42H3.81C4.64,8.42 5.31,9.09 5.31,9.92V17.56C5.31,18.39 4.64,19.06 3.81,19.06H2.31V21.56H5.81V21.56H5.81V24.06H8.31V21.53H9.81V24.03H12.31V21.14C15.39,20.73 17.62,18.68 17.19,15.86C16.96,14.37 16.09,13.26 14.93,12.69C15.96,12.15 16.78,11.03 17.05,10.28M13.03,17.53H10.34V14.03H13.03C14,14.03 14.78,14.81 14.78,15.78C14.78,16.75 14,17.53 13.03,17.53M12.55,12.03H10.34V9.03H12.55C13.38,9.03 14.05,9.7 14.05,10.53C14.05,11.36 13.38,12.03 12.55,12.03Z"/>',
             ETH: '<path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z"/>',
-            SOL: '<path d="M19.437 8.71c.03 0 .059-.006.086-.017l.051-.023a.603.603 0 0 0 .233-.184l.032-.046c.179-.316.105-.725-.208-.934L5.266 1.13a.81.81 0 0 0-.353-.13H3.954c-.03 0-.059.006-.087.017l-.05.023a.608.608 0 0 0-.234.184l-.032.046c-.178.316-.105.725.209.934l14.365 6.377a.815.815 0 0 0 .353.13h.96zm.61 6.58c.03 0 .058-.006.086-.017l.05-.023a.604.604 0 0 0 .234-.184l.032-.046c.179-.316.105-.725-.208-.934L5.875 7.71a.81.81 0 0 0-.352-.13H4.563c-.03 0-.059.006-.087.017l-.05.023a.61.61 0 0 0-.23.184l-.03.046c-.18.316-.1.725.21.934l14.36 6.376a.81.81 0 0 0 .35.13h.96zm-.61 6.58c.03 0 .06-.006.09-.017l.05-.023a.6.6 0 0 0 .23-.184l.03-.046c.18-.316.1-.725-.21-.934L5.27 14.29a.81.81 0 0 0-.35-.13H3.95c-.03 0-.06.006-.09.017l-.05.023a.61.61 0 0 0-.23.184l-.03.046c-.18.316-.1.725.21.934l14.36 6.377a.81.81 0 0 0 .35.13h.96z"/>',
+            SOL: '<path d="M19.437 8.71c.03 0 .059-.006.086-.017l.051-.023a.603.603 0 0 0 .233-.184l.032-.046c.179-.316.105-.725-.208-.934L5.266 1.13a.81.81 0 0 0-.353-.13H3.954c-.03 0-.059.006-.087.017l-.05.023a.608.608 0 0 0-.234.184l-.032.046c-.178.316-.105.725.209.934l14.365 6.377a.815.815 0 0 0 .353.13h.96zm.61 6.58c.03 0 .058-.006.086-.017l.05-.023a.604.604 0 0 0 .234-.184l.032-.046c.179-.316.105-.725-.208-.934L5.875 7.71a.81.81 0 0 0-.352-.13H4.563c-.03 0-.059.006-.087.017l-.05.023a.61.61 0 0 0-.23.184l-.03.046c-.18.316-.1.725.21.934l14.36 6.376a.81.81 0 0 0 .35.13h.96z"/>',
             ADA: '<path d="M12 13.55c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zm4.25-1.55c0 .86.69 1.55 1.55 1.55.85 0 1.55-.69 1.55-1.55 0-.85-.7-1.55-1.55-1.55-.86 0-1.55.7-1.55 1.55zM7.75 12c0 .86.69 1.55 1.55 1.55.85 0 1.55-.69 1.55-1.55 0-.85-.7-1.55-1.55-1.55-.86 0-1.55.7-1.55 1.55zm4.25 4.25c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zm0-8.5c.85 0 1.54-.7 1.54-1.55A1.545 1.545 0 1 0 12 7.75zm-4.25 4.25c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zm8.5 0c.85 0 1.54-.7 1.54-1.55a1.545 1.545 0 1 0-1.54 1.55zM12 2.25A1.545 1.545 0 1 0 12 5.35c.85 0 1.54-.7 1.54-1.55 0-.86-.69-1.55-1.54-1.55zm0 19.5a1.545 1.545 0 1 0 0 3.1 1.545 1.545 0 0 0 0-3.1zm9.75-9.75a1.545 1.545 0 1 0 0 3.1 1.545 1.545 0 0 0 0-3.1zM2.25 12a1.545 1.545 0 1 0 0 3.1 1.545 1.545 0 0 0 0-3.1z"/>',
             XRP: '<path d="M12.005 13.572l6.338 6.387 1.413-1.416-6.402-6.328 6.326-6.22-1.412-1.416-6.263 6.29-6.34-6.368-1.414 1.416 6.42 6.298-6.327 6.232 1.414 1.416z"/>'
         };
@@ -382,7 +528,9 @@
                 this.transactions = safeParse('crypto_txs', []);
                 this.apiConfig = safeParse('crypto_api_config', { type: 'free', key: '' });
                 this.displayCurrency = localStorage.getItem('crypto_currency') || 'BRL';
-                this.privacyMode = false;
+                // NOVO: Unidade de Exibição (BTC ou SATS)
+                this.displayUnit = localStorage.getItem('crypto_unit') || 'BTC';
+                this.privacyMode = localStorage.getItem('crypto_privacy') === 'true' || false;
 
                 this.cacheDuration = 300000; // 5 Minutos
                 this.prices = {};
@@ -392,12 +540,15 @@
 
                 this.requestQueue = [];
                 this.isProcessingQueue = false;
-                this.chartDays = safeParse('crypto_chart_days', 30); // Carrega preferência de dias
+                this.chartDays = safeParse('crypto_chart_days', 30); 
                 
-                this.queueDelay = 15000; // 15s delay (4 req/min)
+                this.queueDelay = 15000; 
                 this.cooldownTime = 0; 
                 
                 this.historyCache = safeParse('crypto_history_cache', {}); 
+                
+                // CARREGA OS DADOS DO LOCALSTORAGE
+                this.localData = safeParse('crypto_local_history', {});
 
                 // Bindings
                 this.log = this.log.bind(this);
@@ -423,12 +574,173 @@
                 this.updateTitle = this.updateTitle.bind(this);
                 this.updateRangeUI = this.updateRangeUI.bind(this);
                 this.fetchHistory = this.fetchHistory.bind(this);
+                this.togglePrivacy = this.togglePrivacy.bind(this);
+                this.smartFetchPrice = this.smartFetchPrice.bind(this);
+                this.calculateBreakEven = this.calculateBreakEven.bind(this);
+                this.importHistoryFile = this.importHistoryFile.bind(this);
+                this.showDateRange = this.showDateRange.bind(this); 
+                this.setUnit = this.setUnit.bind(this); // NOVO
+                this.updateUnitUI = this.updateUnitUI.bind(this); // NOVO
+
+                // Funções de Edição e Exportação
+                this.openEditModal = this.openEditModal.bind(this);
+                this.closeEditModal = this.closeEditModal.bind(this);
+                this.handleUpdateTransaction = this.handleUpdateTransaction.bind(this);
+                this.exportToCsv = this.exportToCsv.bind(this);
 
                 this.initUI();
                 this.loadPricesFromCache();
                 this.refreshAll();
                 
+                // Tenta carregar arquivo local (opcional, caso rode servidor)
+                this.tryLoadLocalFile();
+
                 setInterval(() => this.updateCooldownVisual(), 1000);
+            }
+
+            // Tenta carregar apenas se tiver no servidor, silencioso se falhar
+            async tryLoadLocalFile() {
+                if(Object.keys(this.localData).length > 0) {
+                    this.showDateRange(); // Mostra as datas se já tiver dados
+                    return;
+                }
+                try {
+                    const res = await fetch('./bitcoin.csv');
+                    if (!res.ok) return;
+                    const text = await res.text();
+                    this.processCsvData(text); // Agora usa o processador inteligente
+                } catch (e) {
+                    // Silencioso
+                }
+            }
+
+            // NOVO: Mostra intervalo de datas (primeira e última)
+            showDateRange() {
+                const dates = Object.keys(this.localData).sort();
+                const elRange = document.getElementById('csvDateRange');
+                const elStatus = document.getElementById('csvStatus');
+                
+                if (dates.length > 0 && elRange) {
+                    const first = dates[0].split('-').reverse().join('/');
+                    const last = dates[dates.length - 1].split('-').reverse().join('/');
+                    
+                    elRange.innerHTML = `<div class="date-range-badge">📅 ${first} até ${last}</div>`;
+                    elRange.classList.remove('hidden');
+                    
+                    if(elStatus) {
+                        elStatus.innerText = `${dates.length} datas carregadas na memória.`;
+                        elStatus.classList.add('text-green-500');
+                    }
+                    this.log(`Intervalo BTC: ${first} - ${last}`, 'info');
+                }
+            }
+
+            // NOVO: Processa o Arquivo (XLSX ou CSV) enviado pelo usuário
+            importHistoryFile(input) {
+                const f = input.files[0];
+                if(!f) return;
+                
+                const r = new FileReader();
+                
+                // Usamos ArrayBuffer para suportar XLSX e CSV via SheetJS
+                r.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // Converte para JSON (Array de Arrays) - Mais robusto que texto
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                        
+                        this.processData(jsonData);
+                        alert('Base de dados carregada com sucesso!');
+                    } catch(err) {
+                        console.error(err);
+                        alert('Erro ao ler arquivo. Verifique se é um .xlsx ou .csv válido.');
+                    }
+                };
+                r.readAsArrayBuffer(f);
+                
+                input.value = '';
+            }
+
+            processData(rows) {
+                let count = 0;
+                
+                // Ignora cabeçalho (linha 0)
+                const dataRows = rows.slice(1);
+                
+                dataRows.forEach(cols => {
+                    if (!cols || cols.length < 2) return;
+                    
+                    // Tenta pegar timestamp da coluna 0
+                    // Tenta pegar preço da coluna 7 (ou ultima se não tiver 8)
+                    try {
+                        // Verifica se é um número ou string numérica
+                        const ts = typeof cols[0] === 'number' ? cols[0] : parseInt(cols[0]);
+                        
+                        // Procura preço na coluna 7 (índice 7 = 8ª coluna), ou na última disponível
+                        let priceVal = cols[7];
+                        if (priceVal === undefined) priceVal = cols[cols.length-1];
+                        
+                        // Trata vírgula decimal se for string (ex: "92094,53")
+                        if (typeof priceVal === 'string') {
+                            priceVal = priceVal.replace(',', '.');
+                        }
+                        const price = parseFloat(priceVal);
+
+                        if (!isNaN(ts) && !isNaN(price)) {
+                            // IMPORTANTE: Usa UTC para garantir consistência com o input date HTML
+                            const date = new Date(ts);
+                            // Garante YYYY-MM-DD
+                            const dateStr = date.toISOString().split('T')[0]; 
+                            this.localData[dateStr] = price;
+                            count++;
+                        }
+                    } catch(e) {}
+                });
+
+                if(count > 0) {
+                    localStorage.setItem('crypto_local_history', JSON.stringify(this.localData));
+                    this.showDateRange(); // Atualiza a UI com as datas
+                    this.log(`Importado: ${count} datas de BTC.`, 'success');
+                } else {
+                    alert('Nenhum dado válido encontrado. Verifique as colunas (Timestamp na 1ª, PriceClose na 8ª).');
+                }
+            }
+            
+            // Tenta processar CSV puro se falhar o xlsx (fallback para o botão de CSV específico)
+            processCsvData(text) {
+                const lines = text.split('\n').slice(1); // Remove header
+                let count = 0;
+                
+                lines.forEach(line => {
+                    const cols = line.trim().split(/[\t,;]+/); // Split by tab, comma, or semicolon
+                    
+                    if (cols.length < 2) return;
+                    try {
+                        const ts = parseInt(cols[0]);
+                        // Tenta pegar a penúltima coluna ou a 8a (índice 7)
+                        let priceVal = cols[7] || cols[cols.length - 2]; 
+                        
+                        if (typeof priceVal === 'string') priceVal = priceVal.replace(',', '.');
+                        const price = parseFloat(priceVal);
+
+                        if (!isNaN(ts) && !isNaN(price)) {
+                            const date = new Date(ts);
+                            const dateStr = date.toISOString().split('T')[0]; 
+                            this.localData[dateStr] = price;
+                            count++;
+                        }
+                    } catch(e) {}
+                });
+
+                if(count > 0) {
+                    localStorage.setItem('crypto_local_history', JSON.stringify(this.localData));
+                    this.showDateRange();
+                    this.log(`Importado CSV: ${count} datas.`, 'success');
+                }
             }
 
             // --- UI HELPERS ---
@@ -447,6 +759,13 @@
             
             formatQuantity(value, symbol) {
                 if (this.privacyMode) return '••••••';
+                
+                // NOVA LÓGICA: Se for Bitcoin e o modo for SATS, converte
+                if (symbol === 'BTC' && this.displayUnit === 'SATS') {
+                    const sats = value * 100000000;
+                    return `${sats.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} Sats`;
+                }
+                
                 return `${value.toFixed(6)} ${symbol}`;
             }
 
@@ -523,11 +842,17 @@
                 const dateInput = document.getElementById('dateInput');
                 if(dateInput) dateInput.valueAsDate = new Date();
                 
-                this.populateCoinSelect();
+                this.populateCoinSelect(document.getElementById('coinSelect'));
+                this.populateCoinSelect(document.getElementById('editCoinSelect'));
                 this.updateCurrencyUI();
+                this.updateUnitUI(); // NOVO: Atualiza UI da Unidade
                 this.updateFormTheme();
                 this.setApiStatusUI('Pronto', 'live');
                 this.updateRangeUI();
+                
+                // Atualiza ícone de privacidade
+                const privIcon = document.getElementById('privacyIconMobile');
+                if(privIcon) privIcon.className = this.privacyMode ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
                 
                 // Listeners
                 const setForm = document.getElementById('settingsForm');
@@ -535,6 +860,9 @@
                 
                 const txForm = document.getElementById('txForm');
                 if(txForm) txForm.onsubmit = this.handleAddTransaction;
+                
+                const editTxForm = document.getElementById('editTxForm');
+                if(editTxForm) editTxForm.onsubmit = this.handleUpdateTransaction;
                 
                 document.querySelectorAll('input[name="apiType"]').forEach(r => {
                     r.onchange = (e) => {
@@ -544,9 +872,9 @@
                 });
             }
 
-            populateCoinSelect() {
-                const sel = document.getElementById('coinSelect');
+            populateCoinSelect(sel) {
                 if(!sel) return;
+                const currentValue = sel.value;
                 sel.innerHTML = '';
                 
                 // Sort Bitcoin first
@@ -563,7 +891,12 @@
                     opt.text = `${c.name} (${c.symbol})`;
                     sel.appendChild(opt);
                 });
-                if(this.coinMap['bitcoin']) sel.value = 'bitcoin';
+
+                if (currentValue && this.coinMap[currentValue]) {
+                    sel.value = currentValue;
+                } else if (this.coinMap['bitcoin']) {
+                    sel.value = 'bitcoin';
+                }
             }
 
             updateFormTheme() {
@@ -722,16 +1055,37 @@
 
                 this.transactions.sort((a,b) => new Date(a.date) - new Date(b.date));
                 this.transactions.forEach(tx => {
-                    if(!portfolio[tx.coinId]) portfolio[tx.coinId] = { qty:0, invest:0 };
+                    if(!portfolio[tx.coinId]) portfolio[tx.coinId] = { qty:0, invest:0, beInvest: 0 }; // Added beInvest
+                    
                     let cost = tx.totalCost;
                     const txIsBRL = (!tx.currency || tx.currency === 'BRL');
+                    
                     if(txIsBRL !== isBRL && this.rateBrlToUsd > 0) {
                         cost = txIsBRL ? cost * this.rateBrlToUsd : cost / this.rateBrlToUsd;
                     }
-                    if(tx.type === 'buy') { portfolio[tx.coinId].qty += tx.amount; portfolio[tx.coinId].invest += cost; }
+                    
+                    // Lógica para agregação do Break Even
+                    // Se existe BE salvo, usamos. Se não, usamos o preço médio de compra como fallback.
+                    // Importante converter o BE salvo (que está na moeda original da transação) para a moeda atual de exibição
+                    let txBePrice = tx.breakEven || (tx.amount > 0 ? tx.totalCost/tx.amount : 0);
+                    
+                    if (tx.breakEven && txIsBRL !== isBRL && this.rateBrlToUsd > 0) {
+                         txBePrice = txIsBRL ? txBePrice * this.rateBrlToUsd : txBePrice / this.rateBrlToUsd;
+                    }
+                    
+                    if(tx.type === 'buy') { 
+                        portfolio[tx.coinId].qty += tx.amount; 
+                        portfolio[tx.coinId].invest += cost; 
+                        // O "investimento" para fins de BE é (Preço de Saída Necessário * Quantidade)
+                        portfolio[tx.coinId].beInvest += (txBePrice * tx.amount);
+                    }
                     else { 
                         const avg = portfolio[tx.coinId].qty > 0 ? portfolio[tx.coinId].invest/portfolio[tx.coinId].qty : 0; 
+                        const avgBe = portfolio[tx.coinId].qty > 0 ? portfolio[tx.coinId].beInvest/portfolio[tx.coinId].qty : 0;
+                        
                         portfolio[tx.coinId].invest -= avg * tx.amount; 
+                        // Removemos proporcionalmente do bolo do BE também
+                        portfolio[tx.coinId].beInvest -= avgBe * tx.amount;
                         portfolio[tx.coinId].qty -= tx.amount; 
                     }
                 });
@@ -760,6 +1114,10 @@
                         const sBal = this.formatMoney(balance, sym);
                         const sPrice = this.formatMoney(price, sym);
                         const sPM = this.formatMoney(item.invest/item.qty, sym);
+                        // Calcula o BE Médio Ponderado
+                        const avgBeVal = item.qty > 0 ? item.beInvest / item.qty : 0;
+                        const sBE = this.formatMoney(avgBeVal, sym);
+                        
                         const sQty = this.formatQuantity(item.qty, config.symbol);
 
                         container.innerHTML += `
@@ -772,7 +1130,10 @@
                                 <div class="text-right"><div class="font-bold text-white text-sm">${sBal}</div><div class="text-[10px] text-gray-500">${sPrice}</div></div>
                             </div>
                             <div class="flex justify-between pt-2 border-t border-gray-700/50 text-xs relative z-10">
-                                <span class="text-gray-400">PM: ${sPM}</span>
+                                <div class="flex gap-3">
+                                    <span class="text-gray-400" title="Preço Médio de Compra">PM: ${sPM}</span>
+                                    <span class="text-purple-400 font-bold" title="Preço Médio de Saída (Break-even)">BE: ${sBE}</span>
+                                </div>
                                 <span class="${profit>=0?'text-green-400':'text-red-400'} font-bold">${profit>=0?'+':''}${pct.toFixed(2)}%</span>
                             </div>
                             <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-5 filter blur-2xl" style="background-color:${config.color}"></div>
@@ -812,7 +1173,13 @@
                     const smallIcon = `<div class="w-4 h-4 mr-2 rounded-full overflow-hidden flex items-center justify-center">${icon}</div>`;
                     
                     const sCost = this.privacyMode ? '••••••' : `${originalSym} ${tx.totalCost.toLocaleString()}`;
-                    const sQty = this.formatQuantity(tx.amount, "");
+                    const sQty = this.formatQuantity(tx.amount, config.symbol);
+                    
+                    // MOSTRAR BREAK-EVEN NA TABELA
+                    let beValue = '-';
+                    if (tx.breakEven && tx.breakEven > 0) {
+                         beValue = this.privacyMode ? '••••••' : `${originalSym} ${tx.breakEven.toLocaleString('pt-BR', {maximumFractionDigits: 2})}`;
+                    }
 
                     tbody.innerHTML += `
                     <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
@@ -821,7 +1188,11 @@
                         <td class="p-3"><span class="text-xs font-bold ${isBuy?'text-green-400':'text-red-400'}">${isBuy?'C':'V'}</span></td>
                         <td class="p-3 text-right text-gray-300 text-xs font-mono">${sQty}</td>
                         <td class="p-3 text-right text-gray-300 text-xs">${sCost}</td>
-                        <td class="p-3 text-center"><button onclick="app.deleteTransaction(${tx.id})" class="text-gray-500 hover:text-red-500 p-1"><i class="fa-solid fa-trash"></i></button></td>
+                        <td class="p-3 text-right text-purple-300 text-xs font-bold">${beValue}</td>
+                        <td class="p-3 text-right">
+                            <button onclick="app.openEditModal(${tx.id})" class="text-gray-500 hover:text-yellow-400 p-1" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+                            <button onclick="app.deleteTransaction(${tx.id})" class="text-gray-500 hover:text-red-500 p-1" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                        </td>
                     </tr>`;
                 });
             }
@@ -967,7 +1338,29 @@
             }
 
             // --- Handlers ---
-            setCurrency(c) { this.displayCurrency = c; localStorage.setItem('crypto_currency', c); this.updateCurrencyUI(); this.calculatePortfolio(); this.fetchHistory(); }
+            togglePrivacy() {
+                this.privacyMode = !this.privacyMode;
+                localStorage.setItem('crypto_privacy', this.privacyMode);
+                
+                // Atualiza ícone
+                const icon = document.getElementById('privacyIconMobile');
+                if(icon) icon.className = this.privacyMode ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+                
+                // Recalcula tudo para aplicar o blur
+                this.calculatePortfolio();
+                this.updateTitle();
+                
+                this.log(this.privacyMode ? 'Privacidade ativada' : 'Privacidade desativada', 'info');
+            }
+            
+            setCurrency(c) { 
+                this.displayCurrency = c; 
+                localStorage.setItem('crypto_currency', c); 
+                this.updateCurrencyUI(); 
+                this.calculatePortfolio(); 
+                this.fetchHistory(); 
+                this.calculateBreakEven(); // <--- ADD THIS
+            }
             updateCurrencyUI() { 
                 const b1 = document.getElementById('btn-currency-brl'); const b2 = document.getElementById('btn-currency-usd'); 
                 const l = document.getElementById('costCurrencyLabel');
@@ -982,6 +1375,45 @@
                 }
             }
 
+            // NOVO: Handler para alterar Unidade (BTC/SATS)
+            setUnit(u) {
+                this.displayUnit = u;
+                localStorage.setItem('crypto_unit', u);
+                this.updateUnitUI();
+                this.calculatePortfolio();
+                this.renderHistory();
+            }
+
+            // NOVO: Atualiza visual do botão de Unidade
+            updateUnitUI() {
+                const b1 = document.getElementById('btn-unit-btc');
+                const b2 = document.getElementById('btn-unit-sats');
+                if(!b1) return;
+                
+                // Atualiza botões da Navbar
+                if(this.displayUnit === 'BTC') {
+                    b1.classList.replace('text-gray-400','text-white'); 
+                    b1.classList.add('bg-orange-500'); 
+                    b2.classList.remove('bg-orange-500','text-white'); 
+                    b2.classList.add('text-gray-400');
+                } else {
+                    b2.classList.replace('text-gray-400','text-white'); 
+                    b2.classList.add('bg-orange-500'); 
+                    b1.classList.remove('bg-orange-500','text-white'); 
+                    b1.classList.add('text-gray-400');
+                }
+
+                // Atualiza rótulo e placeholder no formulário
+                const lbl = document.getElementById('qtyUnitLabel');
+                if (lbl) lbl.innerText = this.displayUnit === 'BTC' ? '(BTC)' : '(SATS)';
+                
+                const inp = document.getElementById('amountInput');
+                if(inp) {
+                    inp.placeholder = this.displayUnit === 'BTC' ? '0.00000000' : '0';
+                    inp.step = this.displayUnit === 'BTC' ? '0.00000001' : '1';
+                }
+            }
+
             changeRange(d) { 
                 this.chartDays = d; 
                 localStorage.setItem('crypto_chart_days', d); // PERSISTÊNCIA
@@ -991,11 +1423,50 @@
             
             handleAddTransaction(e) { 
                 e.preventDefault(); 
-                const tx = { id: Date.now(), coinId: document.getElementById('coinSelect').value, type: document.getElementById('typeSelect').value, amount: parseFloat(document.getElementById('amountInput').value), totalCost: parseFloat(document.getElementById('costInput').value), currency: this.displayCurrency, date: document.getElementById('dateInput').value };
-                this.transactions.push(tx); localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); this.calculatePortfolio(); 
-                e.target.reset(); document.getElementById('dateInput').valueAsDate = new Date(); this.log('Transação adicionada.', 'success');
                 
-                // IMPORTANTE: Atualiza o gráfico
+                let qty = parseFloat(document.getElementById('amountInput').value);
+                const unitPrice = parseFloat(document.getElementById('costInput').value);
+                
+                // SE ESTIVER EM SATS, CONVERTE PARA BTC ANTES DE SALVAR
+                if (this.displayUnit === 'SATS') {
+                    qty = qty / 100000000;
+                }
+                
+                // Salva o Custo Total no banco (sempre baseado em BTC)
+                const totalCost = qty * unitPrice;
+
+                // Calcula Break-even para salvar
+                const taxBuy = parseFloat(document.getElementById('taxBuyInput').value) || 0;
+                const taxSell = parseFloat(document.getElementById('taxSellInput').value) || 0;
+
+                const taxBuyVal = (totalCost * taxBuy) / 100;
+                const totalW = totalCost + taxBuyVal;
+                const be = taxSell > 0 ? totalW / (qty * (1 - taxSell/100)) : totalW / qty;
+
+                const tx = { 
+                    id: Date.now(), 
+                    coinId: document.getElementById('coinSelect').value, 
+                    type: document.getElementById('typeSelect').value, 
+                    amount: qty, 
+                    totalCost: totalCost,
+                    taxBuy: taxBuy,
+                    taxSell: taxSell,
+                    breakEven: be, // Salva o Break-Even calculado
+                    currency: this.displayCurrency, 
+                    date: document.getElementById('dateInput').value 
+                };
+
+                this.transactions.push(tx); localStorage.setItem('crypto_txs', JSON.stringify(this.transactions)); this.calculatePortfolio(); 
+                
+                e.target.reset(); 
+                document.getElementById('dateInput').valueAsDate = new Date(); 
+                document.getElementById('smartPriceInfo').classList.add('hidden');
+                document.getElementById('calculationSummary').classList.add('hidden');
+                
+                // Restaura placeholder correto após limpar
+                this.updateUnitUI();
+                
+                this.log('Transação adicionada.', 'success');
                 this.fetchHistory();
             }
             
@@ -1088,7 +1559,9 @@
                         e.onclick = () => { 
                             this.coinMap[c.id] = { symbol: c.symbol.toUpperCase(), name: c.name, color: '#9ca3af', image: c.thumb }; 
                             const cu = safeParse('crypto_custom_coins', {}); cu[c.id] = this.coinMap[c.id]; localStorage.setItem('crypto_custom_coins', JSON.stringify(cu)); 
-                            this.populateCoinSelect(); document.getElementById('coinSelect').value = c.id; this.updateFormTheme(); 
+                            this.populateCoinSelect(document.getElementById('coinSelect'));
+                            this.populateCoinSelect(document.getElementById('editCoinSelect'));
+                            document.getElementById('coinSelect').value = c.id; this.updateFormTheme(); 
                             document.getElementById('searchModal').classList.add('hidden'); this.refreshAll(true); 
                         }; d.appendChild(e); 
                     }); 
@@ -1098,6 +1571,49 @@
             copyDonationAddress() { navigator.clipboard.writeText("Bc1qn9gjwevesf8xhqamvt8lcnwmyz4e5lfdqzc7h0"); alert("Bitcoin Address Copied!"); }
             copyLightningAddress() { navigator.clipboard.writeText("arthurmiguel@bipa.app"); alert("Lightning Address Copied!"); }
 
+            exportToCsv() {
+                if (this.transactions.length === 0) {
+                    alert("Nenhuma transação para exportar.");
+                    return;
+                }
+
+                const headers = [
+                    "ID", "Data", "Ativo", "Symbol", "Tipo", "Quantidade", 
+                    "Valor Total", "Moeda", "Break-even", "Taxa Compra (%)", "Taxa Venda (%)"
+                ];
+
+                const csvRows = [headers.join(',')];
+
+                for (const tx of this.transactions) {
+                    const config = this.coinMap[tx.coinId] || {};
+                    const row = [
+                        tx.id,
+                        tx.date,
+                        config.name || tx.coinId,
+                        config.symbol || '',
+                        tx.type,
+                        tx.amount,
+                        tx.totalCost,
+                        tx.currency,
+                        tx.breakEven || 0,
+                        tx.taxBuy || 0,
+                        tx.taxSell || 0
+                    ].join(',');
+                    csvRows.push(row);
+                }
+
+                const csvString = csvRows.join('\n');
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "crypto_control_transacoes.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
             runSimulation() {
                 const t = parseFloat(document.getElementById('simPriceInput').value); if (!t) return alert('Valor inválido');
                 const btc = this.prices.bitcoin ? this.prices.bitcoin.usd : 0; if (btc === 0) return alert('Aguarde dados...');
@@ -1111,7 +1627,213 @@
                 document.getElementById('simResult').classList.remove('hidden');
                 const displayProj = this.privacyMode ? '••••••' : `${sym} ${proj.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
                 document.getElementById('simTotalValue').innerText = displayProj;
-                document.getElementById('simProfit').innerText = `Crescimento: ${(g*100-100).toFixed(1)}%`;
+                const displayGrowth = this.privacyMode ? '••••' : `${(g*100-100).toFixed(1)}%`;
+                document.getElementById('simProfit').innerText = `Crescimento: ${displayGrowth}`;
+            }
+
+            // --- Gerenciamento do Modal de Edição ---
+            openEditModal(txId) {
+                const tx = this.transactions.find(t => t.id === txId);
+                if (!tx) return;
+
+                // Preenche os campos do modal
+                document.getElementById('editTxId').value = tx.id;
+                document.getElementById('editCoinSelect').value = tx.coinId;
+                document.getElementById('editTypeSelect').value = tx.type;
+                document.getElementById('editAmountInput').value = tx.amount;
+                // O custo unitário é o custo total dividido pela quantidade
+                document.getElementById('editCostInput').value = (tx.totalCost / tx.amount).toFixed(2);
+                document.getElementById('editDateInput').value = tx.date;
+                document.getElementById('editTaxBuyInput').value = tx.taxBuy || 0;
+                document.getElementById('editTaxSellInput').value = tx.taxSell || 0;
+
+                // Exibe o modal
+                document.getElementById('editTxModal').classList.remove('hidden');
+            }
+
+            closeEditModal() {
+                document.getElementById('editTxModal').classList.add('hidden');
+            }
+
+            handleUpdateTransaction(e) {
+                e.preventDefault();
+
+                const txId = parseInt(document.getElementById('editTxId').value);
+                const txIndex = this.transactions.findIndex(t => t.id === txId);
+                if (txIndex === -1) {
+                    alert("Erro: Transação não encontrada!");
+                    return;
+                }
+
+                const qty = parseFloat(document.getElementById('editAmountInput').value);
+                const unitPrice = parseFloat(document.getElementById('editCostInput').value);
+                const totalCost = qty * unitPrice;
+                const taxBuy = parseFloat(document.getElementById('editTaxBuyInput').value) || 0;
+                const taxSell = parseFloat(document.getElementById('editTaxSellInput').value) || 0;
+
+                const taxBuyVal = (totalCost * taxBuy) / 100;
+                const totalW = totalCost + taxBuyVal;
+                const be = taxSell > 0 ? totalW / (qty * (1 - taxSell/100)) : totalW / qty;
+
+                // Atualiza a transação
+                const updatedTx = {
+                    ...this.transactions[txIndex], // Mantém propriedades originais
+                    coinId: document.getElementById('editCoinSelect').value,
+                    type: document.getElementById('editTypeSelect').value,
+                    amount: qty,
+                    totalCost: totalCost,
+                    date: document.getElementById('editDateInput').value,
+                    taxBuy: taxBuy,
+                    taxSell: taxSell,
+                    breakEven: be
+                };
+                
+                this.transactions[txIndex] = updatedTx;
+
+                localStorage.setItem('crypto_txs', JSON.stringify(this.transactions));
+                this.calculatePortfolio();
+                this.fetchHistory();
+                this.closeEditModal();
+                this.log('Transação atualizada.', 'success');
+            }
+            
+
+            // ===== SMART ADD: Buscar preço histórico (Unitário) =====
+            async smartFetchPrice() {
+                const dateInput = document.getElementById('dateInput');
+                const coinSelect = document.getElementById('coinSelect');
+                const infoBox = document.getElementById('smartPriceInfo');
+                const infoText = document.getElementById('smartPriceText');
+                const priceInput = document.getElementById('costInput'); // Agora é Preço Unitário
+
+                if (!dateInput.value || !coinSelect.value) {
+                    infoBox.classList.add('hidden');
+                    return;
+                }
+
+                const selectedDate = new Date(dateInput.value);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                selectedDate.setHours(0, 0, 0, 0);
+
+                // Se data for hoje ou futuro, esconde box e sai
+                if (selectedDate >= today) {
+                    infoBox.classList.add('hidden');
+                    return;
+                }
+
+                infoBox.classList.remove('hidden');
+                infoText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando preço histórico...';
+
+                // === VERIFICAÇÃO DE ARQUIVO LOCAL PRIMEIRO ===
+                const coinId = coinSelect.value;
+                // O arquivo local só serve se for Bitcoin
+                if (coinId === 'bitcoin' && this.localData && this.localData[dateInput.value]) {
+                    const localPrice = this.localData[dateInput.value];
+                    
+                    // SE ENCONTRAR NO ARQUIVO (QUE É EM DÓLAR), MUDA PARA USD AUTOMATICAMENTE
+                    this.setCurrency('USD');
+                    const isBRL = false; // Força modo USD
+                    
+                    // Se estiver em BRL, precisamos converter o preço do CSV (que é em USD)
+                    const priceDisplay = isBRL && this.rateBrlToUsd > 0 
+                        ? localPrice / this.rateBrlToUsd 
+                        : localPrice;
+                        
+                    const symbol = isBRL ? 'R$' : '$';
+
+                    priceInput.value = priceDisplay.toFixed(2);
+                    
+                    // DD-MM-YYYY para exibir bonito
+                    const dateStr = dateInput.value.split('-').reverse().join('-');
+                    
+                    infoText.innerHTML = `<i class="fa-solid fa-file-csv text-orange-400"></i> Arquivo Local (${dateStr}): <strong>${symbol} ${priceDisplay.toLocaleString('pt-BR')}</strong>`;
+                    
+                    this.calculateBreakEven();
+                    return; // Encerra aqui, economizando a chamada de API
+                }
+
+                // === SE NÃO ACHOU LOCAL, CHAMA A API ===
+                try {
+                    // A API da Coingecko exige DD-MM-YYYY. Se o input der YYYY-MM-DD, invertemos.
+                    const dateStr = dateInput.value.split('-').reverse().join('-');
+                    
+                    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/history?date=${dateStr}&localization=false`;
+                    const res = await fetch(url);
+                    
+                    if (!res.ok) throw new Error('API Error');
+                    
+                    const json = await res.json();
+                    const priceUsd = json.market_data?.current_price?.usd;
+
+                    if (!priceUsd) throw new Error('Preço não encontrado');
+
+                    const isBRL = this.displayCurrency === 'BRL';
+                    const priceDisplay = isBRL ? (priceUsd / this.rateBrlToUsd) : priceUsd;
+                    const symbol = isBRL ? 'R$' : '$';
+
+                    infoBox.classList.remove('hidden');
+                    const coinName = this.coinMap[coinId]?.name || coinId;
+                    infoText.innerHTML = `<i class="fa-solid fa-check text-green-400"></i> Online ${dateStr}: <strong>${symbol} ${priceDisplay.toLocaleString('pt-BR')}</strong>`;
+
+                    // Preenche automaticamente o preço unitário
+                    priceInput.value = priceDisplay.toFixed(2);
+                    
+                    // Chama o calculo de totais
+                    this.calculateBreakEven();
+
+                } catch(e) {
+                    infoBox.classList.remove('hidden');
+                    infoText.innerHTML = `<i class="fa-solid fa-exclamation-circle text-red-400"></i> Erro: ${e.message}`;
+                }
+            }
+
+            // ===== BREAK-EVEN PRICE: Calcula Total Gasto e Ponto de Empate =====
+            calculateBreakEven() {
+                let amount = parseFloat(document.getElementById('amountInput').value) || 0;
+                const unitPrice = parseFloat(document.getElementById('costInput').value) || 0; // Agora é Unitário
+                const taxBuy = parseFloat(document.getElementById('taxBuyInput').value) || 0;
+                const taxSell = parseFloat(document.getElementById('taxSellInput').value) || 0;
+
+                // AJUSTE DE SATS: Se o usuário digitou em Sats, divide por 100m para cálculos internos em BTC
+                if (this.displayUnit === 'SATS') {
+                    amount = amount / 100000000;
+                }
+
+                // PEGA O ELEMENTO DE RESUMO
+                const summaryBox = document.getElementById('calculationSummary');
+                const totalValueEl = document.getElementById('calcTotalValue');
+                const breakEvenValueEl = document.getElementById('calcBreakEvenValue');
+                const symbol = this.displayCurrency === 'BRL' ? 'R$' : '$';
+
+                if (amount <= 0 || unitPrice <= 0) {
+                    // Null Check: Ensure summaryBox exists before accessing classList
+                    if(summaryBox) summaryBox.classList.add('hidden');
+                    return;
+                }
+
+                // 1. Calcula o Total Gasto (Valor Real Pago)
+                const totalSpent = amount * unitPrice;
+                
+                // MOSTRA O RESUMO
+                if(summaryBox) summaryBox.classList.remove('hidden');
+                if(totalValueEl) totalValueEl.innerText = this.privacyMode ? '••••••' : `${symbol} ${totalSpent.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+
+                // 2. Calcula Break-Even
+                const taxBuyValue = (totalSpent * taxBuy) / 100;
+                const totalWithTaxBuy = totalSpent + taxBuyValue;
+                
+                const breakEven = taxSell > 0 
+                    ? totalWithTaxBuy / (amount * (1 - taxSell / 100))
+                    : totalWithTaxBuy / amount;
+                
+                if(breakEvenValueEl) {
+                    if (this.privacyMode) {
+                        breakEvenValueEl.innerText = '••••••';
+                    } else {
+                        breakEvenValueEl.innerText = `${symbol} ${breakEven.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                    }
+                }
             }
         }
 
