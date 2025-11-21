@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crypto Control</title>
+    <title>Crypto Control V2</title>
     
     <meta name="theme-color" content="#111827">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -284,32 +284,78 @@
                 </div>
                 <h1 class="text-lg font-bold tracking-tight text-white">Crypto<span class="text-blue-500">Control</span></h1>
             </div>
+
+            <!-- Botão do Menu Mobile (visível em telas pequenas) -->
+            <div class="md:hidden">
+                <button id="mobile-menu-open-button" class="text-gray-300 hover:text-white p-2">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+            </div>
             
-            <div class="flex items-center space-x-2">
+            <!-- Menu Desktop (visível em telas médias e grandes) -->
+            <div class="hidden md:flex items-center space-x-2">
                 <div id="apiStatus" class="flex items-center bg-black/40 px-2 py-1 rounded border border-gray-700/50 text-[10px] mr-1 min-w-[70px] justify-center transition-all">
                     <span class="live-indicator"></span> <span class="text-gray-400 font-mono">...</span>
                 </div>
 
-                <!-- MOEDA FIAT (BRL/USD) -->
                 <div class="flex bg-gray-900 rounded p-0.5 border border-gray-700">
                     <button onclick="app.setCurrency('BRL')" id="btn-currency-brl" class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-600 text-white transition">BRL</button>
                     <button onclick="app.setCurrency('USD')" id="btn-currency-usd" class="px-2 py-0.5 text-[10px] font-bold rounded text-gray-400 hover:text-white transition">USD</button>
                 </div>
 
-                <!-- UNIDADE BTC (BTC/SATS) -->
                 <div class="flex bg-gray-900 rounded p-0.5 border border-gray-700">
                     <button onclick="app.setUnit('BTC')" id="btn-unit-btc" class="px-2 py-0.5 text-[10px] font-bold rounded bg-orange-500 text-white transition">BTC</button>
                     <button onclick="app.setUnit('SATS')" id="btn-unit-sats" class="px-2 py-0.5 text-[10px] font-bold rounded text-gray-400 hover:text-white transition">SATS</button>
                 </div>
                 
-                <button onclick="document.getElementById('simulatorModal').classList.remove('hidden')" class="p-1.5 text-yellow-400 hover:bg-gray-700 rounded transition"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
-                <button onclick="document.getElementById('helpModal').classList.remove('hidden')" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-circle-question"></i></button>
-                <button onclick="app.openSettings()" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition"><i class="fa-solid fa-gear"></i></button>
+                <button onclick="document.getElementById('simulatorModal').classList.remove('hidden')" class="p-1.5 text-yellow-400 hover:bg-gray-700 rounded transition" title="Simulador"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                <button onclick="document.getElementById('helpModal').classList.remove('hidden')" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition" title="Ajuda"><i class="fa-solid fa-circle-question"></i></button>
+                <button onclick="app.openSettings()" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition" title="Ajustes"><i class="fa-solid fa-gear"></i></button>
                 <button onclick="app.refreshAll(true)" class="p-1.5 text-blue-400 hover:text-white hover:bg-gray-700 rounded transition" title="Forçar Atualização"><i class="fa-solid fa-sync"></i></button>
-                <button onclick="app.toggleConsole()" class="p-1.5 text-gray-500 hover:text-green-400 hover:bg-gray-700 rounded transition"><i class="fa-solid fa-terminal"></i></button>
+                <button onclick="app.toggleConsole()" class="p-1.5 text-gray-500 hover:text-green-400 hover:bg-gray-700 rounded transition" title="Console"><i class="fa-solid fa-terminal"></i></button>
             </div>
         </div>
     </nav>
+
+    <!-- Sidebar do Menu Mobile -->
+    <div id="mobile-menu" class="fixed inset-0 bg-black/80 z-[200] hidden backdrop-blur-sm">
+        <div id="mobile-menu-sidebar" class="fixed top-0 left-0 h-full w-64 bg-gray-900 border-r border-gray-700 shadow-2xl p-4 transform -translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-md font-bold text-white">Menu</h2>
+                <button id="mobile-menu-close-button" class="text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="flex flex-col space-y-3">
+                <!-- Itens do menu para mobile -->
+                <div class="flex flex-col space-y-2 text-sm">
+                    <span class="text-xs text-gray-500 font-bold uppercase">Moeda</span>
+                    <div class="flex bg-gray-800 rounded p-1 border border-gray-700 w-full">
+                        <button onclick="app.setCurrency('BRL'); closeMenu();" id="mobile-btn-currency-brl" class="flex-1 py-1 text-xs font-bold rounded text-white transition">BRL</button>
+                        <button onclick="app.setCurrency('USD'); closeMenu();" id="mobile-btn-currency-usd" class="flex-1 py-1 text-xs font-bold rounded text-gray-400 hover:text-white transition">USD</button>
+                    </div>
+                </div>
+                <div class="flex flex-col space-y-2 text-sm">
+                    <span class="text-xs text-gray-500 font-bold uppercase">Unidade</span>
+                    <div class="flex bg-gray-800 rounded p-1 border border-gray-700 w-full">
+                        <button onclick="app.setUnit('BTC'); closeMenu();" id="mobile-btn-unit-btc" class="flex-1 py-1 text-xs font-bold rounded text-white transition">BTC</button>
+                        <button onclick="app.setUnit('SATS'); closeMenu();" id="mobile-btn-unit-sats" class="flex-1 py-1 text-xs font-bold rounded text-gray-400 hover:text-white transition">SATS</button>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-700 my-2"></div>
+
+                <button onclick="document.getElementById('simulatorModal').classList.remove('hidden'); closeMenu();" class="flex items-center space-x-3 p-2 text-gray-300 hover:bg-gray-700 rounded transition text-left"><i class="fa-solid fa-wand-magic-sparkles text-yellow-400 w-5 text-center"></i> <span>Simulador</span></button>
+                <button onclick="app.refreshAll(true); closeMenu();" class="flex items-center space-x-3 p-2 text-gray-300 hover:bg-gray-700 rounded transition text-left"><i class="fa-solid fa-sync text-blue-400 w-5 text-center"></i> <span>Sincronizar Dados</span></button>
+                <button onclick="app.toggleConsole(); closeMenu();" class="flex items-center space-x-3 p-2 text-gray-300 hover:bg-gray-700 rounded transition text-left"><i class="fa-solid fa-terminal text-green-400 w-5 text-center"></i> <span>Console</span></button>
+                
+                <div class="border-t border-gray-700 my-2"></div>
+
+                <button onclick="app.openSettings(); closeMenu();" class="flex items-center space-x-3 p-2 text-gray-300 hover:bg-gray-700 rounded transition text-left"><i class="fa-solid fa-gear text-gray-400 w-5 text-center"></i> <span>Ajustes</span></button>
+                <button onclick="document.getElementById('helpModal').classList.remove('hidden'); closeMenu();" class="flex items-center space-x-3 p-2 text-gray-300 hover:bg-gray-700 rounded transition text-left"><i class="fa-solid fa-circle-question text-gray-400 w-5 text-center"></i> <span>Ajuda</span></button>
+            </div>
+        </div>
+    </div>
 
     <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -482,6 +528,7 @@
     
     <footer class="border-t border-gray-800 mt-6 py-8 text-center bg-gray-900/90 backdrop-blur-md">
         <p class="text-gray-500 text-sm font-mono mb-4">By Arthur Miguel</p>
+        <p class="text-xs text-gray-600 font-mono mb-4">v2.2</p>
         <div class="inline-block bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 max-w-sm mx-auto">
         <p class="text-xs text-gray-400 mb-2 px-2"><i class="fa-solid fa-heart text-red-500 mr-2"></i>Se este projeto te ajudou, considere apoiar com um café ☕</p>
             <div class="mb-2 bg-white p-2 rounded-lg inline-block">
@@ -605,12 +652,25 @@
                     return;
                 }
                 try {
-                    const res = await fetch('./bitcoin.csv');
-                    if (!res.ok) return;
-                    const text = await res.text();
-                    this.processCsvData(text); // Agora usa o processador inteligente
+                    const res = await fetch('./bitcoin.xlsx');
+                    if (!res.ok) {
+                        // If .xlsx fails, try .csv as a fallback
+                        const resCsv = await fetch('./bitcoin.csv');
+                        if (!resCsv.ok) return; // if both fail, just return
+                        const text = await resCsv.text();
+                        this.processCsvData(text); // This one has its own logging, no alerts
+                        this.log('Base de dados local (bitcoin.csv) carregada.', 'success');
+                        return;
+                    };
+                    const data = await res.arrayBuffer();
+                    const workbook = XLSX.read(new Uint8Array(data), {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    this.processData(jsonData, true); // Pass true for silent
+                    this.log('Base de dados local (bitcoin.xlsx) carregada.', 'success');
                 } catch (e) {
-                    // Silencioso
+                    this.log('Nenhum arquivo de base de dados local encontrado (' + e.message + ')', 'warn');
                 }
             }
 
@@ -665,7 +725,7 @@
                 input.value = '';
             }
 
-            processData(rows) {
+            processData(rows, silent = false) {
                 let count = 0;
                 
                 // Ignora cabeçalho (linha 0)
@@ -705,8 +765,9 @@
                     localStorage.setItem('crypto_local_history', JSON.stringify(this.localData));
                     this.showDateRange(); // Atualiza a UI com as datas
                     this.log(`Importado: ${count} datas de BTC.`, 'success');
+                    if (!silent) alert('Base de dados carregada com sucesso!');
                 } else {
-                    alert('Nenhum dado válido encontrado. Verifique as colunas (Timestamp na 1ª, PriceClose na 8ª).');
+                    if (!silent) alert('Nenhum dado válido encontrado. Verifique as colunas (Timestamp na 1ª, PriceClose na 8ª).');
                 }
             }
             
@@ -1362,15 +1423,24 @@
                 this.calculateBreakEven(); // <--- ADD THIS
             }
             updateCurrencyUI() { 
-                const b1 = document.getElementById('btn-currency-brl'); const b2 = document.getElementById('btn-currency-usd'); 
+                const b1 = document.getElementById('btn-currency-brl'); 
+                const b2 = document.getElementById('btn-currency-usd'); 
+                const mob_b1 = document.getElementById('mobile-btn-currency-brl');
+                const mob_b2 = document.getElementById('mobile-btn-currency-usd');
                 const l = document.getElementById('costCurrencyLabel');
-                if(!b1) return;
+                
+                if(!b1 || !mob_b1) return;
+
+                const buttons = [[b1, mob_b1], [b2, mob_b2]];
+
                 if(this.displayCurrency === 'BRL') { 
-                    b1.classList.replace('text-gray-400','text-white'); b1.classList.add('bg-blue-600'); b2.classList.remove('bg-blue-600','text-white'); b2.classList.add('text-gray-400'); 
+                    buttons[0].forEach(btn => { if(btn) { btn.classList.replace('text-gray-400','text-white'); btn.classList.add('bg-blue-600'); } });
+                    buttons[1].forEach(btn => { if(btn) { btn.classList.remove('bg-blue-600','text-white'); btn.classList.add('text-gray-400'); } });
                     if(l) l.innerText = 'R$';
                 }
                 else { 
-                    b2.classList.replace('text-gray-400','text-white'); b2.classList.add('bg-blue-600'); b1.classList.remove('bg-blue-600','text-white'); b1.classList.add('text-gray-400'); 
+                    buttons[1].forEach(btn => { if(btn) { btn.classList.replace('text-gray-400','text-white'); btn.classList.add('bg-blue-600'); } });
+                    buttons[0].forEach(btn => { if(btn) { btn.classList.remove('bg-blue-600','text-white'); btn.classList.add('text-gray-400'); } });
                     if(l) l.innerText = 'USD';
                 }
             }
@@ -1388,19 +1458,20 @@
             updateUnitUI() {
                 const b1 = document.getElementById('btn-unit-btc');
                 const b2 = document.getElementById('btn-unit-sats');
-                if(!b1) return;
+                const mob_b1 = document.getElementById('mobile-btn-unit-btc');
+                const mob_b2 = document.getElementById('mobile-btn-unit-sats');
+
+                if(!b1 || !mob_b1) return;
+
+                const buttons = [[b1, mob_b1], [b2, mob_b2]];
                 
                 // Atualiza botões da Navbar
                 if(this.displayUnit === 'BTC') {
-                    b1.classList.replace('text-gray-400','text-white'); 
-                    b1.classList.add('bg-orange-500'); 
-                    b2.classList.remove('bg-orange-500','text-white'); 
-                    b2.classList.add('text-gray-400');
+                    buttons[0].forEach(btn => { if(btn) { btn.classList.replace('text-gray-400','text-white'); btn.classList.add('bg-orange-500'); } });
+                    buttons[1].forEach(btn => { if(btn) { btn.classList.remove('bg-orange-500','text-white'); btn.classList.add('text-gray-400'); } });
                 } else {
-                    b2.classList.replace('text-gray-400','text-white'); 
-                    b2.classList.add('bg-orange-500'); 
-                    b1.classList.remove('bg-orange-500','text-white'); 
-                    b1.classList.add('text-gray-400');
+                    buttons[1].forEach(btn => { if(btn) { btn.classList.replace('text-gray-400','text-white'); btn.classList.add('bg-orange-500'); } });
+                    buttons[0].forEach(btn => { if(btn) { btn.classList.remove('bg-orange-500','text-white'); btn.classList.add('text-gray-400'); } });
                 }
 
                 // Atualiza rótulo e placeholder no formulário
@@ -1838,6 +1909,41 @@
         }
 
         const app = new CryptoApp();
+
+        // --- Lógica do Menu Mobile ---
+        const mobileMenu = document.getElementById('mobile-menu');
+        const sidebar = document.getElementById('mobile-menu-sidebar');
+        const openBtn = document.getElementById('mobile-menu-open-button');
+        const closeBtn = document.getElementById('mobile-menu-close-button');
+
+        const openMenu = () => {
+            if (mobileMenu && sidebar) {
+                mobileMenu.classList.remove('hidden');
+                setTimeout(() => {
+                    sidebar.classList.remove('-translate-x-full');
+                }, 10); 
+            }
+        };
+
+        const closeMenu = () => {
+            if (mobileMenu && sidebar) {
+                sidebar.classList.add('-translate-x-full');
+                setTimeout(() => {
+                    mobileMenu.classList.add('hidden');
+                }, 300);
+            }
+        };
+
+        if (openBtn) openBtn.addEventListener('click', openMenu);
+        if (closeBtn) closeBtn.addEventListener('click', closeMenu);
+
+        if (mobileMenu) {
+            mobileMenu.addEventListener('click', (e) => {
+                if (e.target === mobileMenu) {
+                    closeMenu();
+                }
+            });
+        }
     </script>
 </body>
 </html>
