@@ -622,7 +622,7 @@
                     // Importante converter o BE salvo (que está na moeda original da transação) para a moeda atual de exibição
                     let txBePrice = tx.breakEven || (tx.amount > 0 ? tx.totalCost/tx.amount : 0);
                     
-                    if (tx.breakEven && txIsBRL !== isBRL && this.rateBrlToUsd > 0) {
+                    if (txIsBRL !== isBRL && this.rateBrlToUsd > 0) {
                          txBePrice = txIsBRL ? txBePrice * this.rateBrlToUsd : txBePrice / this.rateBrlToUsd;
                     }
                     
