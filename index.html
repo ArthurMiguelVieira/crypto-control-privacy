@@ -223,7 +223,7 @@
                     <i class="fa-solid fa-database mr-1 sm:mr-2"></i><span class="hidden sm:inline">Dados</span>
                 </button>
                 <button class="settings-tab-btn flex-1 p-3 text-sm font-bold text-gray-400 text-center border-b-2 border-transparent transition hover:bg-gray-700/50 hover:text-white" onclick="app.switchSettingsTab('integrations', this)">
-                    <i class="fa-solid fa-plug-circle-bolt mr-1 sm:mr-2"></i><span class="hidden sm:inline">Integrações</span>
+                    <i class="fa-solid fa-puzzle-piece mr-1 sm:mr-2"></i><span class="hidden sm:inline">Integrações</span>
                 </button>
                 <button class="settings-tab-btn flex-1 p-3 text-sm font-bold text-gray-400 text-center border-b-2 border-transparent transition hover:bg-gray-700/50 hover:text-white" onclick="app.switchSettingsTab('system', this)">
                     <i class="fa-solid fa-server mr-1 sm:mr-2"></i><span class="hidden sm:inline">Sistema</span>
@@ -522,32 +522,28 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="glass-panel rounded-xl p-4 shadow-lg relative overflow-hidden">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase">Mayer Multiple (BTC)</h3>
-                        <span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded text-gray-500">Bitbo Style</span>
+                    <div class="flex justify-center items-center mb-2">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase">Mayer Multiple</h3>
                     </div>
                     <div class="flex items-end gap-2">
                         <div class="text-2xl font-bold text-white" id="mayerValue">---</div>
                         <div class="text-xs text-gray-400 mb-1" id="mayerStatus">Carregando...</div>
                     </div>
                     <div class="w-full bg-gray-800 h-2 mt-2 rounded-full overflow-hidden relative">
-                        <div class="absolute top-0 left-0 h-full w-1/3 bg-green-500/30"></div>
-                        <div class="absolute top-0 left-1/3 h-full w-1/3 bg-yellow-500/30"></div>
-                        <div class="absolute top-0 right-0 h-full w-1/3 bg-red-500/30"></div>
-                        <div id="mayerIndicator" class="h-full w-1 bg-white absolute top-0 shadow-[0_0_10px_white] transition-all duration-500" style="left: 0%"></div>
+                        <div class="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-green-500/30 via-yellow-500/30 to-red-500/30"></div>
+                        <div id="mayerIndicator" class="h-full w-1 bg-white absolute top-0 shadow-[0_0_10px_white] transition-all duration-500" style="left: 50%"></div>
                     </div>
                 </div>
                 <div class="glass-panel rounded-xl p-4 shadow-lg relative overflow-hidden">
-                    <div class="flex justify-between items-center mb-2">
+                    <div class="flex justify-center items-center mb-2">
                         <h3 class="text-xs font-bold text-gray-400 uppercase">Fear & Greed</h3>
-                        <span id="fngTime" class="text-[10px] bg-gray-800 px-2 py-0.5 rounded text-gray-500">...</span>
                     </div>
                     <div class="flex items-end gap-2">
                         <div class="text-2xl font-bold text-white" id="fngValue">--</div>
                         <div class="text-xs text-gray-400 mb-1" id="fngClassification">Carregando...</div>
                     </div>
                     <div class="w-full bg-gray-800 h-2 mt-2 rounded-full overflow-hidden relative">
-                        <div class="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
+                        <div class="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-red-500/30 via-yellow-500/30 to-green-500/30"></div>
                         <div id="fngIndicator" class="h-full w-1 bg-white absolute top-0 shadow-[0_0_10px_white] transition-all duration-500" style="left: 50%;"></div>
                     </div>
                 </div>
